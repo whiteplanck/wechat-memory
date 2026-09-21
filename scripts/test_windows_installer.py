@@ -50,7 +50,7 @@ def main():
             with urlopen(req, timeout=10) as response:
                 result = json.load(response)
             saved = Path(result["archive"]["path"])
-            assert saved.is_file() and saved.is_relative_to(data)
+            assert saved.is_file() and saved.resolve().is_relative_to(data.resolve())
         finally:
             process.terminate()
             process.communicate(timeout=15)
