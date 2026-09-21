@@ -4,7 +4,9 @@
 
 Windows 用户可使用内置 Python/Node 的 **EXE 安装版**：从成功的 [Windows EXE installer 构建](https://github.com/whiteplanck/wechat-memory/actions/workflows/installer.yml) 下载附件，运行其中的安装程序，再打开桌面快捷方式。首次提取需要登录微信并从开始菜单运行 **Initialize WeChat**。安装包尚未签名，请核对来源与 SHA256；卸载保留聊天。详见 [Windows 使用说明](docs/windows.md)。
 
-**当前是独立本地应用：Python 核心 + 浏览器界面。** Windows 新增通过固定版本 `weflow-cli 1.7.0` 读取会话、提取聊天 JSON 并自动保存；Mac 仍使用文件导入。兼容标准 JSON、she-love-me JSON、常见 weflow-cli / CipherTalk JSON，以及时间戳 Markdown / TXT。尚未使用真实 Windows 微信账号端到端验证，不能保证特定微信版本兼容。
+**Windows 0.3.0 安装版是独立桌面窗口：原生 WinForms 外壳 + 内嵌 WebView2 + 本地 Python 核心。** 启动不再打开系统浏览器或后台控制台，关闭窗口同时停止本应用后台及其提取子进程。源码模式仍可使用浏览器。Windows 通过固定版本 `weflow-cli 1.7.0` 读取会话、提取聊天 JSON 并自动保存；Mac 仍使用文件导入。兼容标准 JSON、she-love-me JSON、常见 weflow-cli / CipherTalk JSON，以及时间戳 Markdown / TXT。尚未使用真实 Windows 微信账号端到端验证，不能保证特定微信版本兼容。
+
+桌面版适用 Windows 10 1903+ / Windows 11 x64，需要 .NET Framework 4.8 和微软 WebView2 Runtime；缺少 WebView2 时安装程序调用附带的微软签名引导程序联网补齐。现有深色界面、聊天目录、备份、日历和加密保存 Key 均沿用。窗口顶部可打开微信初始化（此步骤仍有独立交互控制台），导出使用系统另存为对话框。没有向页面暴露文件/命令桥接，禁止导航到外部网页，禁用密码自动保存和开发者工具。桌面界面仍是 HTML 技术，不是所有控件重写成原生控件，也不是浏览器快捷方式。
 
 ## Windows 快速使用
 

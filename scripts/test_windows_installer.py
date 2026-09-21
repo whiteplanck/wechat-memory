@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    setup = root / "dist" / "WeChatMemory-Setup-0.2.1-x64.exe"
+    setup = root / "dist" / "WeChatMemory-Setup-0.3.0-x64.exe"
     with tempfile.TemporaryDirectory(prefix="wechat-installer-test-") as temp:
         base = Path(temp)
         install = base / "Installed App"
@@ -57,10 +57,32 @@ def main():
         finally:
             process.terminate()
             process.communicate(timeout=15)
+        # Exercise the real native window and embedded UI, with synthetic data only.
+        desktop_test = base / "Desktop Test"
+        try:
+            subprocess.run([str(install / "WeChatMemory.exe"), "--self-test", str(desktop_test)], cwd=base, env=env, check=True, timeout=150)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            failure = desktop_test / "desktop-failed.txt"
+            if failure.exists():
+                print(failure.read_text(encoding="utf-8-sig"), flush=True)
+            raise
+        origin = (desktop_test / "desktop-passed.txt").read_text(encoding="utf-8-sig")
+        assert (desktop_test / "desktop-export.txt").read_text(encoding="utf-8-sig") == "desktop export test"
+        import time
+        stopped = False
+        for _ in range(30):
+            try:
+                with urlopen(origin, timeout=1):
+                    pass
+            except OSError:
+                stopped = True
+                break
+            time.sleep(0.1)
+        assert stopped, "Desktop close left backend running"
         subprocess.run([str(install / "unins000.exe"), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"], check=True, timeout=180)
         assert saved.is_file(), "Uninstall must preserve archives"
         assert not python.exists(), "Bundled runtime was not uninstalled"
-        print("PASS: silent install, bundled Python/Node, extraction dependencies, UI assets, synthetic archive, uninstall preserves data")
+        print("PASS: install, DPAPI persistence, native desktop demo/AI/export, backend shutdown, uninstall preserves archives")
 
 
 if __name__ == "__main__":

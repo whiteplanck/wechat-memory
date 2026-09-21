@@ -19,6 +19,7 @@ def main():
     root = Path(__file__).resolve().parents[1]
     target = root / "build" / "windows-app"
     target.mkdir(parents=True, exist_ok=False)
+    shutil.copytree(root / "build" / "desktop", target, dirs_exist_ok=True)
     runtime = target / "runtime" / "python"
     runtime.mkdir(parents=True)
     download = root / "build" / "python-embed.zip"
@@ -49,11 +50,12 @@ def main():
     (target / "WINDOWS-INSTALL.txt").write_text(
         "微信记忆 / Windows 10、11 x64\n\n"
         "此安装包内置 Python、Node.js 和提取组件，无需另外安装运行环境。\n"
-        "1. 打开桌面 WeChat Memory 快捷方式，应用会打开本地网页。\n"
+        "1. 打开桌面 WeChat Memory 快捷方式，进入独立应用窗口，不会打开浏览器。\n"
         "2. 首次提取：登录自己的微信，在开始菜单打开 Initialize WeChat，按提示初始化。\n"
         "   如果提示权限不足，可右键该快捷方式，以管理员身份运行。\n"
-        "3. 网页内选择 Windows 提取，检测环境、选择会话，再提取保存。\n"
-        "4. 使用期间请保留控制台窗口；关闭该窗口即停止本地服务。\n\n"
+        "3. 应用内选择 Windows 提取，检测环境、选择会话，再提取保存。\n"
+        "4. 关闭应用窗口会停止其后台服务与未完成任务。首次微信初始化仍使用独立交互窗口。\n"
+        "界面采用 WebView2；缺少运行时的电脑首次安装需要联网补齐微软组件。\n\n"
         "聊天默认保存到用户目录 Documents\\WeChatMemory。卸载不删除聊天或提取工具的用户配置。\n"
         "AI 分析可手动选 DeepSeek 并加密保存 Key，重启后继续使用；每次云端发送需确认。\n"
         "卸载保留加密凭据；如需清除，请先在 AI 分析中点击删除已保存 Key。\n"
