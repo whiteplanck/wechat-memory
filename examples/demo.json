@@ -1,0 +1,7 @@
+{
+  "messages": [
+    {"id":"demo-001","conversation":"周末旅行（虚构示例）","sender":"小林","timestamp":"2026-09-19T09:30:00+08:00","text":"周六去西湖散步，记得带相机。","type":"text"},
+    {"id":"demo-002","conversation":"周末旅行（虚构示例）","sender":"小周","timestamp":"2026-09-19T16:20:00+08:00","text":"今天拍的湖边照片。","type":"image","media":["photos/example.jpg"]},
+    {"id":"demo-003","conversation":"周末旅行（虚构示例）","sender":"小林","timestamp":"2026-09-20T10:00:00+08:00","text":"下周整理照片，做一本旅行日历。","type":"text"}
+  ]
+}
