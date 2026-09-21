@@ -165,6 +165,20 @@ sealed class MemoryWindow : Form
             await Task.Delay(100);
         }
         if (!ok) throw new Exception("demo render failed");
+        await view.CoreWebView2.ExecuteScriptAsync("document.querySelector('[data-view=relationship]').click();document.getElementById('rel-build').click()");
+        ok = false;
+        for (int i = 0; i < 100; i++)
+        {
+            if (await view.CoreWebView2.ExecuteScriptAsync("!document.getElementById('rel-result').hidden && document.querySelectorAll('.rel-score').length===2 && document.getElementById('rel-saved').options.length>1") == "true") { ok = true; break; }
+            await Task.Delay(100);
+        }
+        if (!ok) throw new Exception("relationship report failed");
+        using (var stream = File.Create(Path.Combine(testDir, "relationship-ui.png")))
+            await view.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
+        await view.CoreWebView2.ExecuteScriptAsync("document.getElementById('rel-add').click()");
+        if (await view.CoreWebView2.ExecuteScriptAsync("document.querySelectorAll('.rel-event-form').length>0") != "true") throw new Exception("event editor failed");
+        await view.CoreWebView2.ExecuteScriptAsync("document.querySelector('[data-view=memories]').click()");
+        if (await view.CoreWebView2.ExecuteScriptAsync("!document.getElementById('memories-view').hidden") != "true") throw new Exception("memories tab failed");
         await view.CoreWebView2.ExecuteScriptAsync("document.querySelector('[data-view=ai]').click(); document.getElementById('provider').value='deepseek'; document.getElementById('provider').dispatchEvent(new Event('change'))");
         if (await view.CoreWebView2.ExecuteScriptAsync("!document.getElementById('ai-view').hidden && !document.getElementById('deepseek-settings').hidden && !document.getElementById('cloud-consent').checked") != "true")
             throw new Exception("analysis UI failed");

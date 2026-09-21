@@ -32,7 +32,7 @@ def main():
         package.extractall(runtime)
     (runtime / "python313._pth").write_text("python313.zip\n.\nLib\\site-packages\n..\\..\nimport site\n", encoding="utf-8")
     subprocess.run([sys.executable, "-m", "pip", "install", "--only-binary=:all:", "--target", str(runtime / "Lib" / "site-packages"),
-                    "Pillow>=11,<13", "sqlcipher3==0.6.2", "pymem", "cryptography", "html2text", "zstandard", "numpy", "pycryptodome"], check=True)
+                    "Pillow>=11,<13", "sqlcipher3==0.6.2", "pymem", "cryptography", "html2text", "zstandard", "numpy", "pycryptodome", "faster-whisper==1.2.1"], check=True)
     shutil.copytree(root / "wechat_memory", target / "wechat_memory", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     shutil.copytree(root / "docs", target / "docs")
     shutil.copytree(root / "examples", target / "examples")

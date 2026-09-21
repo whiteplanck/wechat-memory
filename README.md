@@ -2,7 +2,56 @@
 
 把自己的微信聊天记录整理成可导出的档案、聊天目录、AI 摘要和照片日历。
 
-Windows 用户可使用内置 Python/Node 的 **EXE 安装版**：从成功的 [Windows EXE installer 构建](https://github.com/whiteplanck/wechat-memory/actions/workflows/installer.yml) 下载附件，运行其中的安装程序，再打开桌面快捷方式。首次提取需要登录微信并从开始菜单运行 **Initialize WeChat**。安装包尚未签名，请核对来源与 SHA256；卸载保留聊天。详见 [Windows 使用说明](docs/windows.md)。
+Windows 用户可使用内置 Python/Node 的 **EXE 安装版**：从 [GitHub Releases](https://github.com/whiteplanck/wechat-memory/releases) 下载 `WeChatMemory-Setup-版本-x64.exe` 和对应 SHA256，运行安装程序，再打开桌面快捷方式。首次提取需要登录微信并从开始菜单运行 **Initialize WeChat**。安装包尚未签名，请核对来源与 SHA256；卸载保留聊天。详见 [Windows 使用说明](docs/windows.md)。
+
+## 0.4.0 · 情感、人物与回忆
+
+「情感与关系」提供两位发言者各自指向对方的统计、沟通画像卡片、指标条形图、月度情感词线索、大事时间线及可选 AI 深读。默认全量本地统计；不受顶部搜索影响，可选会话、起止日期、时区、新会话间隔和夜间排除。群聊拒绝计算双向关系。
+
+- **可核查指标**：消息/轮次数、消息份额、主动发起、回复时延中位数及四分位、有效/排除样本数、分享轮次、亲近/支持/积极/宣泄词线索，以及披露后相邻回应中的支持线索。可展开消息 ID 和原文。
+- **量化边界**：双向「互动投入指数」0–100，不是“喜欢你的概率”或经验证的心理量表。公式为窗口内接续率×50% + 双方发起份额×30% + 本人分享轮次率×20%，这些权重是产品启发式，**不是论文给出的权重**。回复速度、宣泄不直接计分；样本不足显示“—”，不是零分。不输出 MBTI、依恋类型或心理疾病诊断。
+- **大事节点**：表白、争执、道歉/修复、承诺、蜜月旅行、分开先作为关键词候选；原文可能是在否定、转述或谈未来。用户确认/排除、修改实际日期、添加备注后长期保存。热恋阶段可手动记录起止日期，不用消息量峰值自动判定。ICS 只导出已确认节点，阶段结束日写在描述中。
+- **AI 深读**：沿用本机 Ollama 或 DeepSeek Key，分别解释双方的情感表达、分享和支持、冲突修复及反证。云端每次确认，单次完整文本上限 30,000 字符，超限需缩小日期范围；没有悄悄抽样、自动批量扣费。结果自动存入本地关系报告，但 AI 引文和解释仍需人工核查，不自动确认事件。
+- **人物与回忆**：已保存档案的图片/视频/语音按消息发送日期组成回忆日，可手动标记人物、写说明，按人物筛选。当前是文字索引与附件引用，**尚无缩略图、人脸聚类或自动人物识别**；不把拍照者/发信人自动当作照片中的人。
+- **本地语音转写**：安装版包含 faster-whisper 识别组件，但**不含模型权重**。用户准备可信的完整本地模型目录后，单条识别 16 kHz / 单声道 / 16-bit PCM WAV（≤10 分钟、≤20 MB）。不上传音频，不自动下载模型。微信 SILK/加密语音、缺失原音目前不能直接识别，须先由可信工具导出为上述 WAV，并在导入记录的 `media` 中指向该文件。尚未做真实微信语音识别准确率验证；识别候选必须核对后保存，再勾选纳入关系分析。
+
+源码语音扩展：`pip install -e '.[speech]'`。采用 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) 的 CPU INT8、本地模型路径与 `local_files_only=True`；模型目录需 `model.bin`、`config.json`、`tokenizer.json`。模型文件和音频均为不可信输入，只从可信来源取得。实际识别质量取决于模型、方言、背景噪声；可能出现漏字、错字或无声幻觉。
+
+### 心理学论文及适用边界
+
+以下研究用于选择观察维度，**没有任何一篇验证本应用的词典、权重或“爱意预测”准确率**。
+
+1. Laurenceau, J.-P., Feldman Barrett, L., & Pietromonaco, P. R. (1998). *Intimacy as an Interpersonal Process: The Importance of Self-Disclosure, Partner Disclosure, and Perceived Partner Responsiveness in Interpersonal Exchanges*. JPSP, 74(5), 1238–1251. [DOI: 10.1037/0022-3514.74.5.1238](https://doi.org/10.1037/0022-3514.74.5.1238) · [作者公开论文](https://affective-science.org/pubs/1998/LaurenFBPl1998.pdf)。启发：结合自我披露及对方回应，不只数消息。论文的“感知回应”需要当事人体验，不能等同于词典命中或回复速度。
+2. Gable, S. L., Reis, H. T., Impett, E. A., & Asher, E. R. (2004). *What Do You Do When Things Go Right? The Intrapersonal and Interpersonal Benefits of Sharing Positive Events*. JPSP, 87(2), 228–245. [DOI: 10.1037/0022-3514.87.2.228](https://doi.org/10.1037/0022-3514.87.2.228) · [作者实验室](https://labs.psych.ucsb.edu/gable/shelly/publications/395)。启发：查看分享好消息后是否得到积极支持；图片/链接数量本身不代表回应质量。
+3. Templeton, E. M., Chang, L. J., Reynolds, E. A., LeBeaumont, M. D. C., & Wheatley, T. (2022). *Fast Response Times Signal Social Connection in Conversation*. PNAS, 119(4), e2116915119. [DOI: 10.1073/pnas.2116915119](https://doi.org/10.1073/pnas.2116915119) · [全文](https://pmc.ncbi.nlm.nih.gov/articles/PMC8794835/)。研究的是实时口语轮替，**不能直接迁移到异步微信**。因此展示回复分布、夜间排除及样本量，但不设置“几分钟不回就是不喜欢”的阈值，也不把速度计入总分。
+
+工程参考：[UniUni2000/wechat-chat-analyzer](https://github.com/UniUni2000/wechat-chat-analyzer)，审阅版本 `0bd27551ca686104d10e1ec7f296c9d7895eb4e0`。借鉴指标拆分与月度趋势的组织方式；独立实现本项目代码，没有安装其 skill、运行解密/进程扫描脚本或引入其依赖。安全审阅范围及限制见 [参考说明](docs/relationship-method.md)。
+
+### 长期保存格式
+
+采用开放 JSON + 离线 HTML / Markdown + ICS，不依赖在线账户才能打开。
+
+```text
+Documents/WeChatMemory/
+  <内容 SHA256>.json       不可变原始档案，含消息 ID、带时区时间、原始导入及附件引用
+  annotations/<档案ID>.json  人物、说明、核对转写、ASR候选/秒级分段/音频SHA256、人工修订历史
+  relationships/<报告ID>.json 范围、方法版本、指标、原文证据、大事日期/状态、AI结果
+  bundles/<独立备份>/
+    archive-original.json   原始档案
+    messages.json           可移植消息及已复制附件的相对路径
+    annotations.json        人物/回忆/转写和修订历史
+    messages-with-transcripts.json  明确标记的转写衍生视图（非原文）
+    relationships.json      与档案匹配的关系报告和大事
+    attachments/            内容哈希命名的原始附件
+    attachments-manifest.json 每个附件的来源、复制状态、大小、SHA256或缺失原因
+    bundle-manifest.json    格式版本 + 各文件大小及SHA256
+    contacts/.../chat.html  按会话的可离线阅读版本
+    photos.ics              图片消息日历
+```
+
+原始消息的 `(conversation, id)` 是关联键，保留发送时间及其时区。大事的“提及时间”和“实际发生时间”分开，语音分段时间以音频开始为零点；不把转写当原始微信文字。核对转写在衍生视图中明确标记，供关系分析选择使用。报告和标签自动保存在本机，备份时复制完整文件夹。自动存档仅保存附件引用，**必须指定附件根目录生成备份才能保存实际音视频**。
+
+备份包可独立阅读和检查哈希；当前“导入 messages.json”仅恢复聊天，**不会自动恢复 annotations / relationships**，完整迁移应复制整个 `Documents/WeChatMemory` 数据目录。Key 使用独立 DPAPI 存储，不进入这些备份。聊天/报告/标签仍是本地明文，建议使用磁盘加密和独立备份；本机保存不等于零安全风险。
 
 **Windows 0.3.0 安装版是独立桌面窗口：原生 WinForms 外壳 + 内嵌 WebView2 + 本地 Python 核心。** 启动不再打开系统浏览器或后台控制台，关闭窗口同时停止本应用后台及其提取子进程。源码模式仍可使用浏览器。Windows 通过固定版本 `weflow-cli 1.7.0` 读取会话、提取聊天 JSON 并自动保存；Mac 仍使用文件导入。兼容标准 JSON、she-love-me JSON、常见 weflow-cli / CipherTalk JSON，以及时间戳 Markdown / TXT。尚未使用真实 Windows 微信账号端到端验证，不能保证特定微信版本兼容。
 

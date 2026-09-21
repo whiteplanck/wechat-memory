@@ -17,6 +17,8 @@ from .bundles import create_bundle, analysis_material
 from .windows_exporter import WindowsExporter
 from .console import configure_console
 from .credentials import CredentialStore
+from .relationships import RelationshipStore, build_report, export_report
+from .memories import MemoryStore
 
 STATIC = Path(__file__).parent / "web"
 MAX_BODY = 20 * 1024 * 1024
@@ -45,13 +47,13 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if not self.valid_host():
             return self.reply(403, {"error": "仅允许本机地址访问"})
-        name = {"/": "index.html", "/app.js": "app.js", "/style.css": "style.css"}.get(urlsplit(self.path).path)
+        name = {"/": "index.html", "/app.js": "app.js", "/relationship.js": "relationship.js", "/memories.js": "memories.js", "/style.css": "style.css"}.get(urlsplit(self.path).path)
         if not name:
             return self.reply(404, {"error": "不存在的页面"})
         body = (STATIC / name).read_bytes()
         if name == "index.html":
             body = body.replace(b"__SESSION_TOKEN__", self.server.token.encode())
-        mime = {"index.html": "text/html", "app.js": "text/javascript", "style.css": "text/css"}[name]
+        mime = {"index.html": "text/html", "app.js": "text/javascript", "relationship.js": "text/javascript", "memories.js": "text/javascript", "style.css": "text/css"}[name]
         self.reply(200, body, mime + "; charset=utf-8")
 
     def do_POST(self):
@@ -67,7 +69,45 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length))
             if not isinstance(data, dict):
                 raise ValueError("请求必须是对象")
-            if self.path == "/api/credentials/status":
+            if self.path == "/api/memories/load":
+                result = self.server.memories.view(data.get("id"))
+            elif self.path == "/api/memories/annotate":
+                self.server.memories.annotate(data.get("id"), data.get("conversation"), data.get("message_id"),
+                    data.get("people"), data.get("caption", ""), data.get("transcript", ""), data.get("revision"))
+                result = self.server.memories.view(data.get("id"))
+            elif self.path == "/api/memories/transcribe":
+                self.server.memories.transcribe(data.get("id"), data.get("conversation"), data.get("message_id"),
+                    data.get("media_root"), data.get("reference"), data.get("model_dir"))
+                result = self.server.memories.view(data.get("id"))
+            elif self.path == "/api/relationship/build":
+                rows = self.server.memories.enriched(data["archive_id"]) if data.get("include_transcripts") is True else data.get("messages")
+                result = self.server.relationships.create(build_report(rows, data.get("conversation"),
+                    data.get("start", ""), data.get("end", ""), data.get("gap_hours", 4), data.get("quiet", True), data.get("utc_offset", 8)))
+            elif self.path == "/api/relationship/list":
+                result = {"reports": self.server.relationships.list()}
+            elif self.path == "/api/relationship/load":
+                result = self.server.relationships.load(data.get("id"))
+            elif self.path == "/api/relationship/event":
+                result = self.server.relationships.update_event(data.get("id"), data.get("event"))
+            elif self.path == "/api/relationship/export":
+                result = {"content": export_report(self.server.relationships.load(data.get("id")), data.get("format"))}
+            elif self.path == "/api/relationship/analyze":
+                report = self.server.relationships.load(data.get("id"))
+                rows = [{k: m[k] for k in ("id", "conversation", "sender", "timestamp", "type", "text")} for m in report["messages"]]
+                provider, model = data.get("provider"), data.get("model")
+                if not isinstance(model, str) or not model.strip():
+                    raise ValueError("请先在 AI 页面填写模型名")
+                if provider == "deepseek":
+                    if data.get("consent") is not True:
+                        raise ValueError("请确认本次发送给 DeepSeek")
+                    key = self.server.credentials.load() if data.get("use_saved_key") is True else data.get("api_key")
+                    content = analyze_deepseek(rows, key, model.strip(), True, "relationship")
+                elif provider == "ollama":
+                    content = analyze(rows, model.strip(), mode="relationship")
+                else:
+                    raise ValueError("不支持的模型服务")
+                result = self.server.relationships.save_ai(report["id"], content)
+            elif self.path == "/api/credentials/status":
                 result = self.server.credentials.status()
             elif self.path == "/api/credentials/save":
                 result = self.server.credentials.save(data.get("api_key"))
@@ -162,6 +202,8 @@ def make_server(port=8765, data_dir=None):
     server.store = ArchiveStore(data_dir)
     server.exporter = WindowsExporter(server.store)
     server.credentials = CredentialStore()
+    server.relationships = RelationshipStore(server.store.directory)
+    server.memories = MemoryStore(server.store)
     return server
 
 

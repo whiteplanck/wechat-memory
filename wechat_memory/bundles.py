@@ -122,6 +122,26 @@ def create_bundle(store, archive_id, media_root=None):
                     copied.append(item["path"])
             portable.append({**message, "media": copied})
         json_file(stage / "archive-original.json", {k: v for k, v in record.items() if k != "path"})
+        from .memories import MemoryStore
+        from .relationships import RelationshipStore
+        annotations = MemoryStore(store).view(archive_id)
+        json_file(stage / "annotations.json", annotations)
+        json_file(stage / "messages-with-transcripts.json", {"schema": "wechat-memory.derived.v1", "archive_id": archive_id,
+            "note": "用户核对的转写附于正文；不是原始文本。附件请参见 attachments-manifest.json。",
+            "messages": [{**m, "media": p["media"]} for m, p in zip(MemoryStore(store).enriched(archive_id), portable)]})
+        reports = RelationshipStore(store.directory)
+        source_messages = {(m["conversation"], m["id"]): m for m in record["messages"]}
+        related = []
+        for item in reports.list():
+            report = reports.load(item["id"])
+            # Link by exact source fields, allowing the explicitly marked transcript extension.
+            if all((m["conversation"], m["id"]) in source_messages and
+                   all(m[k] == source_messages[(m["conversation"], m["id"])][k] for k in ("timestamp", "sender", "type")) and
+                   (m["text"] == source_messages[(m["conversation"], m["id"])]["text"] or
+                    m["text"].startswith(source_messages[(m["conversation"], m["id"])]["text"] + "\n[用户核对的语音转写，非原始文字]\n"))
+                   for m in report["messages"]):
+                related.append(report)
+        json_file(stage / "relationships.json", {"reports": related})
         json_file(stage / "messages.json", {"messages": portable})
         json_file(stage / "tree.json", tree(portable))
         json_file(stage / "attachments-manifest.json", assets)
@@ -160,6 +180,16 @@ def create_bundle(store, archive_id, media_root=None):
         summary = f'<p>{len(portable)} 条消息 · {len(groups)} 个会话 · 已复制 {copied_count} 个附件 · 未复制 {skipped_count} 个附件。</p><p>缺失附件请查看 attachments-manifest.json；原始记录保留在 archive-original.json。图片日历采用消息发送日期。</p>'
         (stage / "index.html").write_text(page(record["label"], summary + '<ul>' + "".join(links) + '</ul><p><a href="messages.json" download>聊天 JSON</a> · <a href="photos.ics" download>照片日历</a> · <a href="analysis_prompt.txt" download>分析材料</a></p>'), encoding="utf-8")
         (stage / "README.txt").write_text("双击 index.html 离线浏览。备份时复制整个文件夹。\nmessages.json 为已复制附件的可移植引用；未复制附件仅保留在 archive-original.json 和 attachments-manifest.json 中。\n导入到应用后，附件根目录选本备份文件夹。AI 材料只在本地生成，手动上传到模型会向该服务提供聊天样本。\n", encoding="utf-8")
+        manifest = {"schema": "wechat-memory.bundle.v2", "archive_id": archive_id,
+                    "created_at": datetime.now(timezone.utc).isoformat(), "files": []}
+        for path in sorted(stage.rglob("*")):
+            if path.is_file():
+                digest = hashlib.sha256()
+                with path.open("rb") as stream:
+                    while chunk := stream.read(1024 * 1024):
+                        digest.update(chunk)
+                manifest["files"].append({"path": path.relative_to(stage).as_posix(), "bytes": path.stat().st_size, "sha256": digest.hexdigest()})
+        json_file(stage / "bundle-manifest.json", manifest)
         stage.rename(final)
         return {"path": str(final), "index": str(final / "index.html"), "messages": len(portable), "conversations": len(groups), "copied": copied_count, "skipped": skipped_count, "bytes": consumed, "coverage": coverage}
     except Exception:

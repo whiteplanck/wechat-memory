@@ -53,3 +53,12 @@ CI 使用虚构记录验证安装、独立运行环境、DPAPI 跨进程读取�
 上游来源：[仓库](https://github.com/zhuobichen/weflow-cli)、[操作说明](https://github.com/zhuobichen/weflow-cli/blob/master/OPERATIONS.md)。集成只调用环境检测、会话读取和 JSON 导出，不调用发送消息、AI 分析、删除数据、退出账号或全盘扫描命令。
 
 Windows CI 没有真实微信账号，不能据此声称已在某个微信版本提取成功。请区分两种分发：源码脚本包需要自行安装 Python 和 Node，使用浏览器界面；0.3.0 起 EXE 安装包内置独立桌面窗口和 Python/Node 运行环境。
+# 0.4.0 新增入口
+
+安装包从 GitHub Releases 下载，升级前关闭旧窗口；数据仍在 Documents\WeChatMemory。
+
+「情感与关系」选择一对一会话和日期，生成并保存双向指标、月度表达线索与待确认大事；「人物与回忆」打开当前已保存档案，可按消息时间浏览媒体索引、标记人物并核对语音转写。人物是手工标签，当前没有自动人脸识别或缩略图相册。具体论文、计分公式及局限见 README。
+
+本地语音识别组件已内置，但模型权重需要单独准备可信的 faster-whisper 模型目录。当前只接受 16 kHz 单声道16-bit PCM WAV；微信SILK/加密语音须先由可信导出工具解码，缺失音频不能凭聊天占位恢复。识别在本机CPU运行，不需要DeepSeek Key，不自动联网下载模型；候选需要人工核对后保存。未在真实微信音频上验证准确率。
+
+长期备份请指定附件根目录并复制整个备份文件夹。新版备份包含 annotations.json、relationships.json 和 SHA256 清单；原始聊天不会被AI或人工改写。完整迁移数据用整个 Documents\WeChatMemory 目录，单独导入 messages.json 不会自动恢复人物标签或报告。

@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    setup = root / "dist" / "WeChatMemory-Setup-0.3.0-x64.exe"
+    setup = root / "dist" / "WeChatMemory-Setup-0.4.0-x64.exe"
     with tempfile.TemporaryDirectory(prefix="wechat-installer-test-") as temp:
         base = Path(temp)
         install = base / "Installed App"
@@ -24,6 +24,7 @@ def main():
         assert (install / "wechat_memory" / "__init__.py").is_file(), "Application package missing"
         print((install / "runtime" / "python" / "python313._pth").read_text(encoding="utf-8"), flush=True)
         subprocess.run([str(python), "-c", "import sys; print(sys.path)"], cwd=base, env=env, check=True)
+        subprocess.run([str(python), "-c", "import faster_whisper, ctranslate2, numpy; from wechat_memory.relationships import build_report; from wechat_memory.memories import MemoryStore; print('Speech and relationship components import OK')"], cwd=base, env=env, check=True, timeout=90)
         check = subprocess.check_output([str(python), "-m", "wechat_memory.windows_exporter", "check"], cwd=base, env=env, text=True, encoding="utf-8", timeout=150)
         status = json.loads(check)
         assert status["installed"] and not status.get("missing_dependencies", ["missing"]), status
@@ -44,7 +45,7 @@ def main():
             with urlopen(origin, timeout=10) as response:
                 html = response.read().decode("utf-8")
             token = re.search(r'name="session-token" content="([^"]+)"', html).group(1)
-            for asset in ("app.js", "style.css"):
+            for asset in ("app.js", "relationship.js", "memories.js", "style.css"):
                 with urlopen(origin + "/" + asset, timeout=10) as response:
                     assert len(response.read()) > 100
             demo = json.loads((install / "examples" / "demo.json").read_text(encoding="utf-8"))
@@ -67,6 +68,8 @@ def main():
                 print(failure.read_text(encoding="utf-8-sig"), flush=True)
             raise
         origin = (desktop_test / "desktop-passed.txt").read_text(encoding="utf-8-sig")
+        import shutil
+        shutil.copy2(desktop_test / "relationship-ui.png", root / "dist" / "relationship-ui.png")
         assert (desktop_test / "desktop-export.txt").read_text(encoding="utf-8-sig") == "desktop export test"
         import time
         stopped = False

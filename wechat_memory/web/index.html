@@ -5,7 +5,7 @@
   <meta name="session-token" content="__SESSION_TOKEN__">
   <meta name="theme-color" content="#080d16">
   <title>微信记忆 · 本地聊天档案</title>
-  <link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
+  <link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script><script src="/relationship.js" defer></script><script src="/memories.js" defer></script>
 </head>
 <body>
 <aside class="sidebar">
@@ -30,6 +30,36 @@
   <details id="import-notice" hidden><summary>导入说明</summary><pre id="import-warnings"></pre></details>
   <section class="metrics" aria-label="当前筛选统计"><div><span>消息记录</span><strong id="count">0</strong></div><div><span>会话档案</span><strong id="conversations">0</strong></div><div><span>参与者</span><strong id="people">0</strong></div><div><span>图片消息</span><strong id="photos">0</strong></div></section>
   <div class="toolbar"><nav class="views" aria-label="视图"><button data-view="extract" aria-pressed="false">Windows 提取</button><button data-view="chat" aria-pressed="true">聊天记录</button><button data-view="backup" aria-pressed="false">本地备份</button><button data-view="calendar" aria-pressed="false">照片日历</button><button data-view="ai" aria-pressed="false">AI 分析</button></nav><label class="search-label">搜索 <input id="search" type="search" placeholder="内容或参与者"></label></div>
+  <section id="relationship-view" hidden>
+    <div class="section-heading"><div><p class="eyebrow">RELATIONSHIP OBSERVATORY</p><h2>情感与关系 · 看见彼此的回应</h2></div><button id="rel-build" class="primary">生成并保存本地报告</button></div>
+    <p class="muted">全量本地统计，不上传聊天。请选择一个一对一会话；本页不受顶部搜索与左侧单日筛选影响。分数是互动投入的启发式指标，不是对方喜欢你的概率。</p>
+    <div class="ai-settings"><label>会话 <select id="rel-conversation"></select></label><label>开始 <input id="rel-start" type="date"></label><label>结束 <input id="rel-end" type="date"></label><label>新会话间隔 <select id="rel-gap"><option value="1">1 小时</option><option value="4" selected>4 小时</option><option value="8">8 小时</option><option value="24">24 小时</option></select></label><label>时区 <select id="rel-zone"><option value="8">UTC+08:00</option><option value="0">UTC+00:00</option></select></label><label><input id="rel-quiet" type="checkbox" checked>回应统计排除 23:00–08:00</label></div>
+    <p><label><input id="rel-transcripts" type="checkbox">纳入当前已保存档案中经我核对的语音转写（不改变原始消息）</label></p>
+    <div class="photo-input"><label for="rel-saved">本地关系报告</label><select id="rel-saved"><option value="">选择已保存报告</option></select><button id="rel-refresh">刷新</button></div>
+    <p id="rel-scope" class="muted" role="status">生成报告后，可回查原文、确认大事并导出。重新生成相同范围不会覆盖人工记录。</p>
+    <div id="rel-result" hidden>
+      <div id="rel-profiles" class="rel-grid"></div>
+      <details><summary>计算口径、局限与论文依据</summary><div id="rel-method"></div></details>
+      <h3>月度表达趋势</h3><p class="muted">词典线索，不等于真实情绪强度；百分比以当月本人消息数为分母。未命中不代表没有情感。</p><div id="rel-monthly" class="rel-table"></div>
+      <h3>关系大事时间线</h3><p id="rel-event-count" class="muted"></p><button id="rel-add">＋ 手动记录大事 / 热恋阶段</button><div id="rel-events" class="rel-timeline"></div>
+      <h3>AI 深读 · 沟通画像与支持 / 反证</h3><p class="muted">使用「AI 分析」页的服务、模型及 Key。只读此报告范围，单次最多 30,000 字符，超限请缩小日期范围；不会自动截断。云端每次需确认。AI 文本尚未自动核验，不修改指标或已确认事件。</p><button id="rel-ai">分析本报告并保存</button><pre id="rel-ai-output" class="analysis">尚未生成。</pre>
+      <div class="photo-input"><button data-rel-export="json">完整 JSON</button><button data-rel-export="markdown">报告与原文 Markdown</button><button data-rel-export="ics">已确认大事日历</button></div>
+      <p class="muted">报告和原文保存在本机档案目录的 relationships 文件夹；JSON / Markdown 包含私密聊天。阶段事件的日历条目记在开始日，结束日期保留于描述。</p>
+    </div>
+  </section>
+  <section id="memories-view" hidden>
+    <div class="section-heading"><div><p class="eyebrow">PEOPLE / MOMENTS / VOICES</p><h2>人物与回忆</h2></div><button id="memory-refresh">打开当前档案的回忆</button></div>
+    <p class="muted">按消息发送日期聚合媒体回忆；人物由你手动标记，并非自动人脸识别。当前版展示文字索引和附件路径，不是图片缩略图相册。标签、语音转写、修改历史与原始记录分开保存。</p>
+    <p id="memory-scope" class="muted" role="status">请先导入并保存档案，再打开回忆。</p>
+    <div id="memory-people" class="photo-input"></div><div id="memory-days" class="rel-grid"></div>
+    <h3>标记人物 / 整理一条记忆</h3><div class="ai-settings"><label>消息 <select id="memory-message"><option value="">请打开档案</option></select></label><label>人物（逗号分隔）<input id="memory-tags" maxlength="1000"></label><label>记忆说明 <input id="memory-caption" maxlength="2000"></label></div>
+    <pre id="memory-original" class="rel-evidence">选择消息可查看原文和附件引用。</pre>
+    <label for="memory-transcript">语音转写（可人工填写或核对识别结果后保存）</label><textarea id="memory-transcript" rows="5" maxlength="30000"></textarea><button id="memory-save" class="primary">保存标签与已核对转写</button>
+    <details><summary>本地语音识别 · 不上传音频</summary><p class="muted">需要本机完整 faster-whisper 模型目录，应用不会自动下载模型。当前支持最长 10 分钟的 16 kHz 单声道 16-bit PCM WAV；SILK/加密语音需由可信导出工具先解码。原音缺失时不能恢复。识别可能错字或产生幻觉，请核对后保存。只处理当前一条，不自动批量运行。</p>
+      <div class="ai-settings"><label>附件根目录 <input id="speech-root" placeholder="C:\\聊天导出"></label><label>本地模型目录 <input id="speech-model" placeholder="C:\\Models\\faster-whisper-small"></label><label>语音附件 <select id="speech-reference"></select></label></div><button id="speech-run">仅在本机转写当前语音</button><pre id="speech-candidate" class="analysis">识别结果会单独保存为待核对候选，不覆盖人工转写。</pre>
+    </details>
+    <p class="muted">分析语音内容：保存核对后的转写，再到「情感与关系」勾选纳入转写。做长期备份时，在「本地备份」指定附件根目录，复制整个备份文件夹。</p>
+  </section>
   <section id="extract-view" hidden>
     <div class="section-heading"><h2>从 Windows 微信提取</h2><button id="win-check" class="quiet">检测环境</button></div>
     <ol><li>在这台 Windows 电脑登录微信，并确认需要的聊天记录可在电脑端查看。</li><li>安装版：从开始菜单打开「Initialize WeChat」完成初始化。源码启动版：先运行 setup-windows.cmd，再运行 init-wechat-windows.cmd。按终端提示操作。</li><li>检测环境、读取会话，选择要提取的对象。提取完成后自动保存为本地档案。</li></ol>

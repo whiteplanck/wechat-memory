@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wechat-memory"
-version = "0.3.0"
+version = "0.4.0"
 description = "Local-first chat archives, conversation trees, AI analysis and photo calendars"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
 photos = ["Pillow>=11,<13"]
+speech = ["faster-whisper==1.2.1"]
 
 [project.scripts]
 wechat-memory = "wechat_memory.cli:main"

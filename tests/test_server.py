@@ -93,6 +93,22 @@ class LocalAppTests(unittest.TestCase):
             self.assertNotIn("archive", json.loads(body))
             save.assert_not_called()
 
+    def test_relationship_api_durable_and_explicit_cloud(self):
+        rows=[{"id":"a","conversation":"pair","sender":"A","timestamp":"2026-01-01T10:00:00+08:00","text":"我喜欢你"},
+              {"id":"b","conversation":"pair","sender":"B","timestamp":"2026-01-01T10:01:00+08:00","text":"我很开心"}]
+        code,body,_=self.request('/api/relationship/build',{'messages':rows,'conversation':'pair'})
+        self.assertEqual(code,200);report=json.loads(body)
+        self.assertEqual(len(report['profiles']),2)
+        self.assertEqual(self.request('/api/relationship/load',{'id':report['id']})[0],200)
+        with patch('wechat_memory.server.analyze_deepseek',return_value='带证据的模拟结果') as mock:
+            self.assertEqual(self.request('/api/relationship/analyze',{'id':report['id'],'provider':'deepseek','model':'test'})[0],400)
+            mock.assert_not_called()
+            code,body,_=self.request('/api/relationship/analyze',{'id':report['id'],'provider':'deepseek','model':'test','consent':True,'api_key':'test-key-not-real'})
+            self.assertEqual(code,200)
+            self.assertEqual(mock.call_args.args[-1],'relationship')
+            self.assertNotIn(b'test-key-not-real',body)
+            self.assertEqual(json.loads(body)['ai'],'带证据的模拟结果')
+
     def test_deepseek_consent_and_no_key_storage(self):
         data = {"messages": self.messages, "provider": "deepseek", "model": "deepseek-flash", "api_key": "test-only-key"}
         with patch("wechat_memory.providers.build_opener") as network:

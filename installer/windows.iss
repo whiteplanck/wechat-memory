@@ -1,4 +1,4 @@
-#define AppVersion "0.3.0"
+#define AppVersion "0.4.0"
 [Setup]
 AppId={{2D13F7F1-D846-4FB4-9919-48DAB16903E6}
 AppName=WeChat Memory
