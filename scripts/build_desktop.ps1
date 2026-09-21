@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$target = Join-Path $root 'build/desktop'
+$target = [IO.Path]::GetFullPath((Join-Path $root 'build\desktop'))
 New-Item -ItemType Directory -Path $target -Force | Out-Null
 $sdk = Join-Path $root 'build/webview2-sdk'
 $archive = Join-Path $root 'build/webview2.zip'
@@ -13,7 +13,8 @@ Copy-Item "$sdk/runtimes/win-x64/native/WebView2Loader.dll" $target
 Copy-Item "$sdk/LICENSE.txt" "$target/WebView2-LICENSE.txt"
 Copy-Item "$root/desktop/WeChatMemory.exe.config" $target
 $compiler = Join-Path $env:SystemRoot 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
-& $compiler /nologo /target:winexe /platform:x64 /optimize+ "/out:$target/WeChatMemory.exe" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll "/reference:$target/Microsoft.Web.WebView2.Core.dll" "/reference:$target/Microsoft.Web.WebView2.WinForms.dll" "$root/desktop/WeChatMemory.cs"
+$source = [IO.Path]::GetFullPath((Join-Path $root 'desktop\WeChatMemory.cs'))
+& $compiler /nologo /target:winexe /platform:x64 /optimize+ "/out:$target\WeChatMemory.exe" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll "/reference:$target\Microsoft.Web.WebView2.Core.dll" "/reference:$target\Microsoft.Web.WebView2.WinForms.dll" $source
 if ($LASTEXITCODE -ne 0) { throw 'Desktop compilation failed' }
 $bootstrap = Join-Path $target 'MicrosoftEdgeWebview2Setup.exe'
 Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $bootstrap
