@@ -32,11 +32,44 @@ function renderCalendar(){
   for(let i=0;i<offset;i++)grid.append(node("div",undefined,"day blank"));const byDate=new Map();for(const e of events()){if(!byDate.has(e.date))byDate.set(e.date,[]);byDate.get(e.date).push(e);}
   for(let day=1;day<=count;day++){const cell=node("div",undefined,"day");cell.append(node("span",day));const key=`${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;for(const e of byDate.get(key)||[])cell.append(node("p",e.title,"event"));grid.append(cell);}$("ics").disabled=!events().length;
 }
-async function importData(raw,label){const version=++importRevision;const result=await api("import",{messages:Array.isArray(raw)?raw:raw?.messages});if(version!==importRevision)return;photoRevision++;messages=result.messages;selected={conversation:null,day:null};$("search").value="";photoData=null;$("skips").hidden=true;limit=100;invalidate();setMonth();renderTree();render();status(`已载入 ${label}：${messages.length} 条消息。数据仅保存在本次页面会话中。`);}
+function adoptArchive(result){
+  photoRevision++;messages=result.messages;selected={conversation:null,day:null};
+  $("search").value="";photoData=null;$("skips").hidden=true;limit=100;
+  invalidate();setMonth();renderTree();render();
+  $("archives").value=result.archive?.id||"";
+}
+async function refreshArchives(){
+  const current=$("archives").value, result=await api("archives",{});
+  $("archives").replaceChildren(new Option("选择本地档案", ""));
+  for(const item of result.archives){
+    $("archives").append(new Option(`${item.label} · ${item.count} 条 · ${item.created_at.slice(0,10)}`, item.id));
+  }
+  $("archives").value=current;
+  $("storage-path").textContent=`保存位置：${result.directory}`;
+  if(result.errors.length)status(`${result.errors.length} 个档案无法读取，原文件已保留。请检查保存目录中的 JSON 文件。`,true);
+  return result;
+}
+async function openArchive(id){
+  const version=++importRevision;
+  const result=await api("archive",{id});if(version!==importRevision)return;
+  adoptArchive(result);status(`已打开本地档案：${result.archive.label}（${messages.length} 条）。文件：${result.archive.path}`);
+}
+async function importData(raw,label,save=true){
+  const version=++importRevision;
+  const result=await api("import",{messages:Array.isArray(raw)?raw:raw?.messages,label,save});
+  if(version!==importRevision)return;
+  // Show the successfully imported data even if refreshing the archive list fails.
+  adoptArchive(result);
+  status(result.archive?`已保存到本地：${result.archive.path}（${messages.length} 条）`:`已载入 ${label}，示例不自动保存。`);
+  try{await refreshArchives();if(version===importRevision)$("archives").value=result.archive?.id||"";}
+  catch(e){status(result.archive?`档案已保存，但列表刷新失败：${e.message}`:e.message,true);}
+}
 $("import").onclick=()=>$("file").click();
 $("file").onchange=async()=>{const file=$("file").files[0];if(!file)return;try{if(file.size>19*1024*1024)throw new Error("文件过大，请拆分为小于 19 MB 的 JSON 文件");await importData(JSON.parse(await file.text()),file.name);}catch(e){status(e.message,true);}finally{$("file").value="";}};
-$("demo").onclick=()=>importData([{id:"demo-1",conversation:"周末旅行（虚构示例）",sender:"小林",timestamp:"2026-09-19T09:30:00+08:00",text:"周六去西湖散步，记得带相机。",type:"text"},{id:"demo-2",conversation:"周末旅行（虚构示例）",sender:"小周",timestamp:"2026-09-19T16:20:00+08:00",text:"今天拍的湖边照片。",type:"image",media:["photos/example.jpg"]},{id:"demo-3",conversation:"周末旅行（虚构示例）",sender:"小林",timestamp:"2026-09-20T10:00:00+08:00",text:"下周整理照片，做一本旅行日历。",type:"text"}],"虚构示例").catch(e=>status(e.message,true));
-$("reset").onclick=()=>{$("search").value="";select(null,null);};$("clear").onclick=()=>{importRevision++;photoRevision++;messages=[];photoData=null;$("folder").value="";$("skips").hidden=true;$("skip-list").textContent="";$("search").value="";select(null,null);status("已清空当前页面的记录。已下载的文件保留在你的电脑上。");};
+$("demo").onclick=()=>importData([{id:"demo-1",conversation:"周末旅行（虚构示例）",sender:"小林",timestamp:"2026-09-19T09:30:00+08:00",text:"周六去西湖散步，记得带相机。",type:"text"},{id:"demo-2",conversation:"周末旅行（虚构示例）",sender:"小周",timestamp:"2026-09-19T16:20:00+08:00",text:"今天拍的湖边照片。",type:"image",media:["photos/example.jpg"]},{id:"demo-3",conversation:"周末旅行（虚构示例）",sender:"小林",timestamp:"2026-09-20T10:00:00+08:00",text:"下周整理照片，做一本旅行日历。",type:"text"}],"虚构示例",false).catch(e=>status(e.message,true));
+$("reset").onclick=()=>{$("search").value="";select(null,null);};$("clear").onclick=()=>{importRevision++;photoRevision++;messages=[];photoData=null;$("archives").value="";$("folder").value="";$("skips").hidden=true;$("skip-list").textContent="";$("search").value="";select(null,null);status("已关闭当前档案。本地文件仍保留，可从左侧重新打开。");};
+$("archives").onchange=()=>{if($("archives").value)openArchive($("archives").value).catch(e=>status(e.message,true));};
+$("reload-archives").onclick=()=>refreshArchives().catch(e=>status(e.message,true));
 $("search").oninput=()=>{limit=100;invalidate();render();};$("more").onclick=()=>{limit+=100;render();};
 document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-view]").forEach(x=>{const active=x===b;x.setAttribute("aria-pressed",String(active));$(x.dataset.view+"-view").hidden=!active;});if(b.dataset.view==="calendar"){setMonth();renderCalendar();}});
 document.querySelectorAll("[data-export]").forEach(b=>b.onclick=async()=>{try{const fmt=b.dataset.export;const r=await api("export",{messages:filtered(),format:fmt});download(r.content,`chat-${Date.now()}.${fmt==="json"?"json":"md"}`);status("已导出当前筛选的聊天记录。");}catch(e){status(e.message,true);}});
@@ -46,6 +79,10 @@ $("ics").onclick=async()=>{try{const content=photoData?photoData.ics:(await api(
 $("analyze").onclick=async()=>{const b=$("analyze"),version=revision;b.dataset.busy="true";b.disabled=true;$("save-analysis").disabled=true;status("本地模型正在分析，可能需要几分钟…");try{const result=await api("analyze",{messages:filtered(),model:$("model").value});if(version!==revision){status("聊天或筛选已改变，旧分析已丢弃，请重新分析。");return;}analysis=result.content;$("analysis").textContent=analysis;$("save-analysis").disabled=false;status("分析完成，请核对原始消息。 ");}catch(e){status(e.message,true);}finally{b.dataset.busy="false";render();}};
 $("save-analysis").onclick=()=>download(analysis,`analysis-${Date.now()}.md`);
 setMonth();render();
+const startupVersion=importRevision;
+refreshArchives().then(result=>{
+  if(startupVersion===importRevision&&result.archives.length&&!result.errors.length)return openArchive(result.archives[0].id);
+}).catch(e=>status(`本地档案读取失败：${e.message}`,true));
 
 // Optional browser-agent integration reuses the visible search, without
 // transmitting records to a model or returning private message content.

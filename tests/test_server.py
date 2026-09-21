@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from threading import Thread
 import unittest
+import tempfile
 from unittest.mock import patch
 
 from wechat_memory.server import make_server
@@ -11,7 +12,8 @@ from wechat_memory.server import make_server
 class LocalAppTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.server = make_server(0)
+        cls.storage = tempfile.TemporaryDirectory()
+        cls.server = make_server(0, cls.storage.name)
         cls.worker = Thread(target=cls.server.serve_forever, daemon=True)
         cls.worker.start()
         cls.messages = json.loads((Path(__file__).resolve().parents[1] / "examples/demo.json").read_text())["messages"]
@@ -21,6 +23,7 @@ class LocalAppTests(unittest.TestCase):
         cls.server.shutdown()
         cls.server.server_close()
         cls.worker.join()
+        cls.storage.cleanup()
 
     def request(self, path, data=None, headers=None):
         connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=5)
@@ -69,6 +72,26 @@ class LocalAppTests(unittest.TestCase):
             self.assertEqual(json.loads(body)["content"], "summary")
             self.assertEqual(model.call_args.args[1], "local-model")
             self.assertEqual(model.call_args.kwargs, {})
+
+    def test_import_persists_and_can_be_reopened(self):
+        code, body, _ = self.request("/api/import", {"messages": self.messages, "label": "我的档案"})
+        self.assertEqual(code, 200)
+        archive = json.loads(body)["archive"]
+        self.assertTrue(Path(archive["path"]).is_file())
+        code, body, _ = self.request("/api/archive", {"id": archive["id"]})
+        self.assertEqual(code, 200)
+        self.assertEqual(len(json.loads(body)["messages"]), 3)
+        code, body, _ = self.request("/api/archives", {})
+        self.assertEqual(code, 200)
+        self.assertIn(archive["id"], [a["id"] for a in json.loads(body)["archives"]])
+        self.assertEqual(self.request("/api/archive", {"id": "../../etc/passwd"})[0], 400)
+
+    def test_demo_is_not_saved(self):
+        with patch.object(self.server.store, "save") as save:
+            code, body, _ = self.request("/api/import", {"messages": self.messages, "save": False})
+            self.assertEqual(code, 200)
+            self.assertNotIn("archive", json.loads(body))
+            save.assert_not_called()
 
 
 if __name__ == "__main__":

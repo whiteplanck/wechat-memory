@@ -1,4 +1,4 @@
-"""Loopback-only UI server. Archives live in the browser tab, not on disk."""
+"""Loopback-only UI server backed by durable local JSON archives."""
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -11,6 +11,7 @@ import webbrowser
 from .core import normalize, tree, statistics, markdown, calendar, chat_photo_events
 from .photos import scan_photos
 from .providers import analyze
+from .storage import ArchiveStore
 
 STATIC = Path(__file__).parent / "web"
 MAX_BODY = 20 * 1024 * 1024
@@ -61,7 +62,12 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length))
             if not isinstance(data, dict):
                 raise ValueError("请求必须是对象")
-            if self.path == "/api/photos":
+            if self.path == "/api/archives":
+                result = self.server.store.list()
+            elif self.path == "/api/archive":
+                record = self.server.store.load(data.get("id"))
+                result = {"messages": record["messages"], "archive": self.server.store.summary(record)}
+            elif self.path == "/api/photos":
                 folder = data.get("folder")
                 if not isinstance(folder, str) or not folder.strip():
                     raise ValueError("请填写照片文件夹的绝对路径")
@@ -73,6 +79,8 @@ class Handler(BaseHTTPRequestHandler):
                 messages = normalize(data.get("messages"))
                 if self.path == "/api/import":
                     result = {"messages": messages, "tree": tree(messages), "stats": statistics(messages), "events": chat_photo_events(messages)}
+                    if data.get("save") is not False:
+                        result["archive"] = self.server.store.save(messages, data.get("label", "聊天档案"))
                 elif self.path == "/api/export":
                     fmt = data.get("format")
                     if fmt == "markdown":
@@ -107,10 +115,11 @@ class LocalServer(ThreadingHTTPServer):
         self.server_port = self.server_address[1]
 
 
-def make_server(port=8765):
+def make_server(port=8765, data_dir=None):
     server = LocalServer(("127.0.0.1", port), Handler)
     server.token = secrets.token_urlsafe(32)
     server.daemon_threads = True
+    server.store = ArchiveStore(data_dir)
     return server
 
 
@@ -118,9 +127,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="启动微信记忆本地应用")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument("--data-dir", help="本地档案目录，默认 ~/Documents/WeChatMemory")
     args = parser.parse_args(argv)
     try:
-        server = make_server(args.port)
+        server = make_server(args.port, args.data_dir)
     except OSError as exc:
         parser.exit(1, f"无法启动：{exc}；可以使用 --port 指定其他端口。\n")
     url = f"http://127.0.0.1:{server.server_port}"
