@@ -50,4 +50,4 @@ CI 使用虚构记录验证安装、独立运行环境、导入存档及卸载�
 
 上游来源：[仓库](https://github.com/zhuobichen/weflow-cli)、[操作说明](https://github.com/zhuobichen/weflow-cli/blob/master/OPERATIONS.md)。集成只调用环境检测、会话读取和 JSON 导出，不调用发送消息、AI 分析、删除数据、退出账号或全盘扫描命令。
 
-Windows CI 验证本应用、安装组件及基本环境检查；CI 没有真实微信账号，不能据此声称已在某个微信版本提取成功。脚本启动包仍需要 Python 和 Node，尚不是免环境的 EXE 安装包。
+Windows CI 验证本应用、安装组件及基本环境检查；CI 没有真实微信账号，不能据此声称已在某个微信版本提取成功。请区分两种分发：源码脚本包需要自行安装 Python 和 Node；EXE 安装包内置运行环境，均使用本地浏览器界面。

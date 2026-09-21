@@ -2,6 +2,8 @@
 
 把自己的微信聊天记录整理成可导出的档案、聊天目录、AI 摘要和照片日历。
 
+Windows 用户可使用内置 Python/Node 的 **EXE 安装版**：从成功的 [Windows EXE installer 构建](https://github.com/whiteplanck/wechat-memory/actions/workflows/installer.yml) 下载附件，运行其中的安装程序，再打开桌面快捷方式。首次提取需要登录微信并从开始菜单运行 **Initialize WeChat**。安装包尚未签名，请核对来源与 SHA256；卸载保留聊天。详见 [Windows 使用说明](docs/windows.md)。
+
 **当前是独立本地应用：Python 核心 + 浏览器界面。** Windows 新增通过固定版本 `weflow-cli 1.7.0` 读取会话、提取聊天 JSON 并自动保存；Mac 仍使用文件导入。兼容标准 JSON、she-love-me JSON、常见 weflow-cli / CipherTalk JSON，以及时间戳 Markdown / TXT。尚未使用真实 Windows 微信账号端到端验证，不能保证特定微信版本兼容。
 
 ## Windows 快速使用

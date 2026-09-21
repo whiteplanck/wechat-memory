@@ -32,7 +32,7 @@
   <div class="toolbar"><nav class="views" aria-label="视图"><button data-view="extract" aria-pressed="false">Windows 提取</button><button data-view="chat" aria-pressed="true">聊天记录</button><button data-view="backup" aria-pressed="false">本地备份</button><button data-view="calendar" aria-pressed="false">照片日历</button><button data-view="ai" aria-pressed="false">AI 分析</button></nav><label class="search-label">搜索 <input id="search" type="search" placeholder="内容或参与者"></label></div>
   <section id="extract-view" hidden>
     <div class="section-heading"><h2>从 Windows 微信提取</h2><button id="win-check" class="quiet">检测环境</button></div>
-    <ol><li>在这台 Windows 电脑登录微信，并确认需要的聊天记录可在电脑端查看。</li><li>首次使用运行下载包中的 setup-windows.cmd，再运行 init-wechat-windows.cmd，按终端提示完成初始化。</li><li>检测环境、读取会话，选择要提取的对象。提取完成后自动保存为本地档案。</li></ol>
+    <ol><li>在这台 Windows 电脑登录微信，并确认需要的聊天记录可在电脑端查看。</li><li>安装版：从开始菜单打开「Initialize WeChat」完成初始化。源码启动版：先运行 setup-windows.cmd，再运行 init-wechat-windows.cmd。按终端提示操作。</li><li>检测环境、读取会话，选择要提取的对象。提取完成后自动保存为本地档案。</li></ol>
     <p class="muted">初始化可能需要管理员权限。仅提取本机可读取的消息，不自动发送给 AI；手机未迁移的历史和未下载的附件可能不在本机。首次初始化必须在 Windows 终端完成。</p>
     <pre id="win-status" class="analysis">点击「检测环境」检查此电脑。Mac 上可继续导入已有文件，直接提取请在 Windows 运行。</pre>
     <div class="photo-input"><label for="win-keyword">会话关键词</label><input id="win-keyword" placeholder="昵称或备注，可留空"><button id="win-sessions" class="quiet" disabled>读取会话</button></div>
