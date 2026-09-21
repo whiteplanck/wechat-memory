@@ -43,13 +43,13 @@ class MemoryTests(unittest.TestCase):
         reports=RelationshipStore(self.archives.directory)
         report=build_report(self.store.enriched(self.id),'C');reports.create(report)
         bundle=Path(create_bundle(self.archives,self.id)['path'])
-        self.assertEqual(json.loads((bundle/'annotations.json').read_text())['items'][0]['transcript'],'你好')
-        self.assertEqual(len(json.loads((bundle/'relationships.json').read_text())['reports']),1)
-        manifest=json.loads((bundle/'bundle-manifest.json').read_text())
+        self.assertEqual(json.loads((bundle/'annotations.json').read_text(encoding='utf-8'))['items'][0]['transcript'],'你好')
+        self.assertEqual(len(json.loads((bundle/'relationships.json').read_text(encoding='utf-8'))['reports']),1)
+        manifest=json.loads((bundle/'bundle-manifest.json').read_text(encoding='utf-8'))
         self.assertEqual(manifest['schema'],'wechat-memory.bundle.v2')
         for file in manifest['files']:
             self.assertEqual(hashlib.sha256((bundle/file['path']).read_bytes()).hexdigest(),file['sha256'])
-        self.assertNotIn('api_key',(bundle/'annotations.json').read_text())
+        self.assertNotIn('api_key',(bundle/'annotations.json').read_text(encoding='utf-8'))
 
 
 if __name__=='__main__':unittest.main()
