@@ -10,7 +10,7 @@ import webbrowser
 
 from .core import normalize, tree, statistics, markdown, calendar, chat_photo_events
 from .photos import scan_photos
-from .providers import analyze
+from .providers import analyze, analyze_deepseek
 from .storage import ArchiveStore
 from .importers import import_records
 from .bundles import create_bundle, analysis_material
@@ -119,9 +119,15 @@ class Handler(BaseHTTPRequestHandler):
                     messages = normalize(data.get("messages"))
                     model = data.get("model")
                     if not isinstance(model, str) or not model.strip():
-                        raise ValueError("请填写已安装的 Ollama 模型名")
-                    # UI intentionally uses only the local model endpoint.
-                    result = {"content": analyze(messages, model.strip())}
+                        raise ValueError("请填写模型名")
+                    provider = data.get("provider", "ollama")
+                    if provider == "deepseek":
+                        result = {"content": analyze_deepseek(messages, data.get("api_key"), model.strip(),
+                                  consent=data.get("consent"), mode=data.get("mode", "overview"))}
+                    elif provider == "ollama":
+                        result = {"content": analyze(messages, model.strip())}
+                    else:
+                        raise ValueError("不支持的模型服务")
             else:
                 return self.reply(404, {"error": "不存在的接口"})
             self.reply(200, result)

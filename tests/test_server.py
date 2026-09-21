@@ -93,6 +93,19 @@ class LocalAppTests(unittest.TestCase):
             self.assertNotIn("archive", json.loads(body))
             save.assert_not_called()
 
+    def test_deepseek_consent_and_no_key_storage(self):
+        data = {"messages": self.messages, "provider": "deepseek", "model": "deepseek-flash", "api_key": "test-only-key"}
+        with patch("wechat_memory.providers.build_opener") as network:
+            self.assertEqual(self.request("/api/analyze", data)[0], 400)
+            network.assert_not_called()
+        with patch("wechat_memory.server.analyze_deepseek", return_value="report") as provider, patch.object(self.server.store, "save") as save:
+            code, body, _ = self.request("/api/analyze", {**data, "consent": True, "mode": "communication"})
+            self.assertEqual(code, 200)
+            self.assertNotIn(b"test-only-key", body)
+            self.assertEqual(provider.call_args.kwargs, {"consent": True, "mode": "communication"})
+            save.assert_not_called()
+        self.assertEqual(self.request("/api/analyze", {**data, "provider": "unknown"})[0], 400)
+
     def test_external_import_retains_original_and_exports_bundle(self):
         raw = {"contact_display": "参考格式", "messages": [{"local_id": 99, "sender": "me", "timestamp": 1726142400,
                 "type": "text", "content": "你好", "extra_metadata": "原样保留"}]}

@@ -11,7 +11,7 @@ async function api(route,data) {
 }
 function node(tag,text,cls) { const e=document.createElement(tag); if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e; }
 function filtered() { const q=$("search").value.toLocaleLowerCase();return messages.filter(m=>(!selected.conversation||m.conversation===selected.conversation)&&(!selected.day||m.timestamp.startsWith(selected.day))&&(!q||`${m.text} ${m.sender}`.toLocaleLowerCase().includes(q))); }
-function invalidate() {revision++;analysis="";$("analysis").textContent="筛选已更新，点击分析当前筛选生成结果。";$("save-analysis").disabled=true;}
+function invalidate() {revision++;analysis="";$("cloud-consent").checked=false;$("analysis").textContent="筛选或设置已更新，点击分析当前筛选生成结果。";$("save-analysis").disabled=true;}
 function download(text,name,type="text/plain") { const url=URL.createObjectURL(new Blob([text],{type:`${type};charset=utf-8`})); const a=node("a");a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000); }
 function renderTree() {
   $("tree").replaceChildren();const groups=new Map();for(const m of messages){if(!groups.has(m.conversation))groups.set(m.conversation,new Map());const days=groups.get(m.conversation);const day=m.timestamp.slice(0,10);days.set(day,(days.get(day)||0)+1);}
@@ -84,7 +84,31 @@ document.querySelectorAll("[data-export]").forEach(b=>b.onclick=async()=>{try{co
 $("month").onchange=renderCalendar;$("chat-calendar").onclick=()=>{photoRevision++;photoData=null;$("skips").hidden=true;setMonth();renderCalendar();};
 $("scan").onclick=async()=>{const b=$("scan"),version=++photoRevision;b.disabled=true;status("正在读取本地照片拍摄日期…");try{const result=await api("photos",{folder:$("folder").value});if(version!==photoRevision)return;photoData=result;$("skips").hidden=!result.skipped.length;$("skip-list").textContent=result.skipped.map(s=>`${s.file}：${s.reason}`).join("\n");setMonth();renderCalendar();status(`找到 ${result.events.length} 张带日期的照片，跳过 ${result.skipped.length} 张。`);}catch(e){if(version===photoRevision)status(e.message,true);}finally{b.disabled=false;}};
 $("ics").onclick=async()=>{try{const content=photoData?photoData.ics:(await api("export",{messages:filtered(),format:"ics"})).content;download(content,`photos-${Date.now()}.ics`,"text/calendar");status("日历已下载，可手动导入日历应用。");}catch(e){status(e.message,true);}};
-$("analyze").onclick=async()=>{const b=$("analyze"),version=revision;b.dataset.busy="true";b.disabled=true;$("save-analysis").disabled=true;status("本地模型正在分析，可能需要几分钟…");try{const result=await api("analyze",{messages:filtered(),model:$("model").value});if(version!==revision){status("聊天或筛选已改变，旧分析已丢弃，请重新分析。");return;}analysis=result.content;$("analysis").textContent=analysis;$("save-analysis").disabled=false;status("分析完成，请核对原始消息。 ");}catch(e){status(e.message,true);}finally{b.dataset.busy="false";render();}};
+$("provider").onchange=()=>{
+  const cloud=$("provider").value==="deepseek";$("deepseek-settings").hidden=!cloud;
+  $("model").value=cloud?"deepseek-flash":"";$("api-key").value="";invalidate();
+};
+$("model").oninput=invalidate;$("analysis-mode").onchange=invalidate;
+$("clear-key").onclick=()=>{$("api-key").value="";$("cloud-consent").checked=false;status("已清空页面中的 API Key。");};
+window.addEventListener("pagehide",()=>{$("api-key").value="";$("cloud-consent").checked=false;});
+$("analyze").onclick=async()=>{
+  const b=$("analyze"),version=revision,cloud=$("provider").value==="deepseek",rows=filtered();
+  if(cloud&&!$("cloud-consent").checked){status("请先勾选本次云端发送确认。",true);return;}
+  if(cloud&&!$("api-key").value.trim()){status("请先粘贴 DeepSeek API Key。",true);return;}
+  if(cloud&&!window.confirm(`将发送当前筛选的 ${rows.length} 条聊天至 api.deepseek.com，可能产生费用。确认继续？`))return;
+  const payload={messages:rows,model:$("model").value,provider:$("provider").value};
+  if(cloud){Object.assign(payload,{api_key:$("api-key").value.trim(),consent:true,mode:$("analysis-mode").value});$("api-key").value="";$("cloud-consent").checked=false;}
+  b.dataset.busy="true";b.disabled=true;analysis="";$("analysis").textContent="正在分析…";$("save-analysis").disabled=true;
+  status(cloud?"正在请求 DeepSeek，仅发送本次选定内容…":"本地模型正在分析，可能需要几分钟…");
+  try{
+    const pending=api("analyze",payload);delete payload.api_key;
+    const result=await pending;
+    if(version!==revision){status("聊天或设置已改变，旧分析已丢弃，请重新分析。");return;}
+    analysis=`# ${cloud?"DeepSeek":"Ollama"} 分析\n\n范围：本次筛选的 ${rows.length} 条消息；生成于 ${new Date().toISOString()}。\n\n${result.content}`;
+    $("analysis").textContent=analysis;$("save-analysis").disabled=false;status("分析完成，请核对原始消息，并点击「导出分析」保存。 ");
+  }catch(e){if(version===revision)$("analysis").textContent="分析未完成，请检查提示后重试。";status(e.message,true);}
+  finally{delete payload.api_key;b.dataset.busy="false";render();}
+};
 $("save-analysis").onclick=()=>download(analysis,`analysis-${Date.now()}.md`);
 $("material").onclick=async()=>{
   try{const result=await api("material",{messages:filtered()});download(result.content,`analysis-material-${Date.now()}.txt`);

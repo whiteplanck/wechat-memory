@@ -7,7 +7,7 @@ import zipfile
 
 def build(output):
     root = Path(__file__).resolve().parents[1]
-    names = ["README.md", "pyproject.toml", "setup-windows.cmd", "init-wechat-windows.cmd", "start-windows.cmd", "docs/windows.md", "docs/reference-notes.md", "examples/demo.json"]
+    names = ["README.md", "pyproject.toml", "setup-windows.cmd", "init-wechat-windows.cmd", "start-windows.cmd", "docs/windows.md", "docs/reference-notes.md", "docs/architecture.md", "docs/skills-security-review.md", "examples/demo.json"]
     files = [root / name for name in names]
     files += sorted((root / "wechat_memory").glob("*.py"))
     files += sorted(p for p in (root / "wechat_memory" / "web").iterdir() if p.suffix in {".html", ".js", ".css"})

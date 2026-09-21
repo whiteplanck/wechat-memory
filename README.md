@@ -32,7 +32,7 @@ JSON 档案可直接复制备份，也可重新导入。自动存档保存文字
 
 照片目录扫描需要下面的 `photos` 扩展；安装后也可以使用 `wechat-memory-app` 启动。按 Ctrl+C 关闭服务，端口被占用时加 `--port 8766`，不希望自动打开浏览器则加 `--no-browser`。
 
-本地界面仅监听 `127.0.0.1`，校验 Host、来源和会话令牌，不加载外部脚本或字体。单文件导入限制为 19 MB；本地照片扫描只读取元数据，不上传照片。网页 AI 界面仅连接默认本机 Ollama，不开放远程模型配置。
+本地界面仅监听 `127.0.0.1`，校验 Host、来源和会话令牌，不加载外部脚本或字体。单文件导入限制为 19 MB；本地照片扫描只读取元数据，不上传照片。网页 AI 默认本机 Ollama；可手动切换 DeepSeek，粘贴 Key 并逐次确认云端发送。
 
 ## 聊天和附件一起备份
 
@@ -82,13 +82,23 @@ wechat-memory photos /path/to/your/photos --output output/capture-dates.ics
 
 ## AI 模型
 
+### DeepSeek API（网页）
+
+在「AI 分析」选择 **DeepSeek API**，粘贴自己的 API Key，选择分析模式，勾选本次发送确认后点击分析。接口固定为 `https://api.deepseek.com/chat/completions`；默认模型 `deepseek-flash`，也可手动填入官方支持的模型名。模型名以 [DeepSeek 官方文档](https://api-docs.deepseek.com/) 为准（核对日期：2026-09-21）。
+
+可选模式：摘要/话题树/时间线、沟通模式与反证、待办与约定。这些是应用内置的受限提示词，不运行第三方 skill 脚本，不给模型执行命令或读取文件的工具。GitHub 候选 skill 的版本、审查范围及风险见 [安全审查记录](docs/skills-security-review.md)。
+
+只发送当前筛选的文本、会话名、发言者、时间、类型和消息 ID；不发送独立附件路径字段或附件文件。正文中的隐私并不会自动脱敏。单次最多 30000 字符，超限拒绝，不静默截断。API 可能收费，无自动重试。Key 仅用于本次请求，页面提交后清空，不持久化到文件、浏览器存储或 GitHub。结果用纯文本显示，点击「导出分析」保存 Markdown 到浏览器下载目录。未用真实 Key 调用付费 API；测试使用模拟响应。
+
+### Ollama（本地 / CLI）
+
 安装并启动 Ollama、下载你选择的模型后（模型名必须是本机已有模型）：
 
 ```sh
 wechat-memory analyze examples/demo.json --model YOUR_LOCAL_MODEL --output output/analysis.md
 ```
 
-通过 [Ollama 官方 Chat API](https://docs.ollama.com/api/chat) 接入。默认 `http://127.0.0.1:11434`；`--endpoint` 可指定兼容的 Ollama 服务。当前不支持云端 API 密钥或其他协议。单次请求限制为 30000 字符，超过时明确报错；使用 `--conversation '会话名称' --day 2026-09-19` 缩小范围，不会静默截断。
+通过 [Ollama 官方 Chat API](https://docs.ollama.com/api/chat) 接入。默认 `http://127.0.0.1:11434`；CLI 的 `--endpoint` 可指定兼容的 Ollama 服务，非本地服务须 `--allow-remote`。DeepSeek 目前使用上述网页入口。单次请求限制为 30000 字符，超过时明确报错；使用 `--conversation '会话名称' --day 2026-09-19` 缩小范围，不会静默截断。
 
 分析发送筛选后的完整消息字段（包括参与者和附件路径），当前未做自动脱敏。除显式调用模型外，导出、目录和统计均无网络访问。不自动下载模型。
 
