@@ -29,7 +29,7 @@ def main():
     download.write_bytes(archive)
     with zipfile.ZipFile(download) as package:
         package.extractall(runtime)
-    (runtime / "python313._pth").write_text("python313.zip\n.\nLib/site-packages\n../..\nimport site\n", encoding="utf-8")
+    (runtime / "python313._pth").write_text("python313.zip\n.\nLib\\site-packages\n..\\..\nimport site\n", encoding="utf-8")
     subprocess.run([sys.executable, "-m", "pip", "install", "--only-binary=:all:", "--target", str(runtime / "Lib" / "site-packages"),
                     "Pillow>=11,<13", "sqlcipher3==0.6.2", "pymem", "cryptography", "html2text", "zstandard", "numpy", "pycryptodome"], check=True)
     shutil.copytree(root / "wechat_memory", target / "wechat_memory", ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
@@ -62,6 +62,7 @@ def main():
                 "node": subprocess.check_output([str(node), "--version"], text=True).strip(),
                 "commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()}
     (target / "BUILD-INFO.json").write_text(json.dumps(versions, indent=2), encoding="utf-8")
+    subprocess.run([str(runtime / "python.exe"), "-c", "import sys; print(sys.path); import wechat_memory, PIL, sqlcipher3; print(wechat_memory.__file__)"], cwd=root.parent, check=True)
     manifest = [hashlib.sha256(path.read_bytes()).hexdigest() + "  " + path.relative_to(target).as_posix()
                 for path in sorted(target.rglob("*")) if path.is_file()]
     (target / "SHA256SUMS.txt").write_text("\n".join(manifest) + "\n", encoding="utf-8")

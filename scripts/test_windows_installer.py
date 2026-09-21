@@ -21,6 +21,9 @@ def main():
         env = os.environ.copy()
         env["PATH"] = str(Path(os.environ["SystemRoot"]) / "System32")
         env["PYTHONIOENCODING"] = "utf-8"
+        assert (install / "wechat_memory" / "__init__.py").is_file(), "Application package missing"
+        print((install / "runtime" / "python" / "python313._pth").read_text(encoding="utf-8"), flush=True)
+        subprocess.run([str(python), "-c", "import sys; print(sys.path)"], cwd=base, env=env, check=True)
         check = subprocess.check_output([str(python), "-m", "wechat_memory.windows_exporter", "check"], cwd=base, env=env, text=True, encoding="utf-8", timeout=150)
         status = json.loads(check)
         assert status["installed"] and not status.get("missing_dependencies", ["missing"]), status
