@@ -130,6 +130,8 @@ def import_records(raw, fmt="auto", contact="", offset="+08:00"):
             if transcript:
                 text += "\n[语音转写] " + str(transcript)
             identity = first(row, ("id", "local_id", "localId", "messageId"))
+            if fmt == "weflow-cli" and row.get("serverId") not in (None, "", 0, "0"):
+                identity = "server-" + str(row["serverId"])
             if identity is None:
                 identity = "import-" + hashlib.sha256(json.dumps([row, index], sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:20]
             converted.append({"id": str(identity), "conversation": str(row.get("conversation") or conversation),

@@ -2,7 +2,19 @@
 
 把自己的微信聊天记录整理成可导出的档案、聊天目录、AI 摘要和照片日历。
 
-**当前是独立本地应用原型：Python 核心 + 浏览器界面，后续打包桌面版。** 支持标准 JSON、she-love-me JSON、常见 weflow-cli / CipherTalk JSON，以及带时间戳的 Markdown / TXT；尚未实现直接读取微信数据库或客户端注入。示例完全虚构，不包含真实聊天或照片。
+**当前是独立本地应用：Python 核心 + 浏览器界面。** Windows 新增通过固定版本 `weflow-cli 1.7.0` 读取会话、提取聊天 JSON 并自动保存；Mac 仍使用文件导入。兼容标准 JSON、she-love-me JSON、常见 weflow-cli / CipherTalk JSON，以及时间戳 Markdown / TXT。尚未使用真实 Windows 微信账号端到端验证，不能保证特定微信版本兼容。
+
+## Windows 快速使用
+
+准备 Windows 10/11 x64、Python 3.11+、Node.js 22.13+ 和已登录的 Windows 微信。下载本仓库的 Windows 启动包并解压，然后依次运行：
+
+1. `setup-windows.cmd`：首次联网安装应用和提取组件。
+2. `init-wechat-windows.cmd`：首次初始化；按终端提示操作，若访问进程权限不足则右键以管理员身份运行。
+3. `start-windows.cmd`：打开应用，进入「Windows 提取」，检测环境 → 读取会话 → 选择会话 → 提取并保存。
+
+下载入口：[Windows launcher kit](https://github.com/whiteplanck/wechat-memory/actions/workflows/windows.yml) 成功运行的 Artifacts。启动包是带安装脚本的源码包，仍需要 Python / Node，不是免环境 EXE。完整安装、保存位置和排障步骤见 [Windows 使用说明](docs/windows.md)。
+
+提取范围是**这台电脑可读取的聊天**，不会自动补回手机未迁移的历史或未下载的附件；JSON 提取尚未集成上游富媒体 HTML 导出。
 
 ## 打开本地应用
 
@@ -100,7 +112,7 @@ Markdown / TXT 示例：
 
 ## 开发路线
 
-1. 确定首个微信平台/版本，接入用户授权的聊天导出来源。
+1. 在真实 Windows 微信账号上验证提取兼容性，补充导出器错误诊断和附件提取。
 2. 增加应用内附件预览、原生文件夹选择与大档案增量备份。
 3. 添加多模型提供商、密钥存储、脱敏、长聊天分块及可验证的引用。
 4. 添加图片内容理解与事件提取，由用户确认日期和事件后写入日历。

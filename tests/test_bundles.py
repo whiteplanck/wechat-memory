@@ -39,7 +39,10 @@ class BundleTests(unittest.TestCase):
         self.assertEqual((bundle / rows[0]["media"][0]).read_bytes(), b"fictional-image")
 
     def test_symlink_escape_is_not_copied(self):
-        (self.media / "escape.txt").symlink_to(self.root / "outside.txt")
+        try:
+            (self.media / "escape.txt").symlink_to(self.root / "outside.txt")
+        except OSError:
+            self.skipTest("当前系统未授予创建符号链接的权限")
         self.messages[0]["media"] = ["escape.txt"]
         archive = self.store.save(self.messages, "旅行")
         result = create_bundle(self.store, archive["id"], str(self.media))

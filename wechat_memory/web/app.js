@@ -2,6 +2,7 @@
 const $ = id => document.getElementById(id);
 let messages = [], selected = {conversation:null, day:null}, limit = 100, photoData = null, analysis = "", revision = 0, photoRevision = 0, importRevision = 0;
 let activeArchive = null;
+let windowsReady=false, windowsBusy=false;
 const token = document.querySelector('meta[name="session-token"]').content;
 function status(text, error=false) { $("status").textContent=text; $("status").classList.toggle("error",error); }
 async function api(route,data) {
@@ -98,6 +99,38 @@ $("backup").onclick=async()=>{
     if(activeArchive?.id===archive.id)$("backup-result").textContent=summary;
     status(`「${archive.label}」备份已保存：${result.path}（${result.skipped} 个附件未复制）`);
   }catch(e){status(`备份失败：${e.message}`,true);}finally{b.dataset.busy="false";render();}
+};
+function windowsControls(){
+  $("win-check").disabled=windowsBusy;$("win-sessions").disabled=windowsBusy||!windowsReady;
+  $("win-export").disabled=windowsBusy||!windowsReady||!$("win-session").value;
+  $("win-session").disabled=windowsBusy;
+}
+$("win-session").onchange=windowsControls;
+$("win-check").onclick=async()=>{
+  windowsBusy=true;windowsControls();$("win-status").textContent="正在检测 Windows 和提取组件…";
+  try{const r=await api("windows/status",{});windowsReady=r.ready;
+    $("win-status").textContent=`${r.message}\nWindows：${r.supported?"是":"否"}\n提取组件：${r.installed?"已安装":"未就绪"}（要求 ${r.required_version}）\nNode.js：${r.node_version||"未检测"}\n初始化：${r.initialized?"已配置，仍需验证会话读取":"未完成"}${r.missing_dependencies?.length?"\n缺少依赖："+r.missing_dependencies.join("、"):""}`;
+  }catch(e){windowsReady=false;$("win-status").textContent=e.message;status(e.message,true);}
+  finally{windowsBusy=false;windowsControls();}
+};
+$("win-sessions").onclick=async()=>{
+  windowsBusy=true;windowsControls();$("win-status").textContent="正在读取本机微信会话…";
+  try{const r=await api("windows/sessions",{keyword:$("win-keyword").value.trim()});
+    $("win-session").replaceChildren(new Option("选择会话", ""));
+    for(const s of r.sessions)$("win-session").append(new Option(`${s.name} (${s.id})`,s.id));
+    $("win-status").textContent=`找到 ${r.sessions.length} 个会话。${r.message}`;
+  }catch(e){$("win-session").replaceChildren(new Option("读取失败，请重试", ""));$("win-status").textContent=e.message;status(e.message,true);}
+  finally{windowsBusy=false;windowsControls();}
+};
+$("win-export").onclick=async()=>{
+  const id=$("win-session").value;if(!id)return;const version=importRevision;
+  windowsBusy=true;windowsControls();$("win-status").textContent="正在提取并保存，消息较多时可能需要几分钟，请勿关闭应用…";
+  try{const r=await api("windows/export",{id});
+    $("win-status").textContent=`已保存 ${r.count} 条消息\n档案：${r.archive.path}\n原始文件：${r.raw_path}\n${r.warnings.join("\n")}`;
+    await refreshArchives();if(version===importRevision)await openArchive(r.archive.id);
+    status(`Windows 提取完成，${r.count} 条消息已保存到本地，可切换「聊天记录」查看。`);
+  }catch(e){$("win-status").textContent=e.message;status(e.message,true);}
+  finally{windowsBusy=false;windowsControls();}
 };
 setMonth();render();
 const startupVersion=importRevision;

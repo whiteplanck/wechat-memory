@@ -14,6 +14,7 @@ from .providers import analyze
 from .storage import ArchiveStore
 from .importers import import_records
 from .bundles import create_bundle, analysis_material
+from .windows_exporter import WindowsExporter
 
 STATIC = Path(__file__).parent / "web"
 MAX_BODY = 20 * 1024 * 1024
@@ -64,7 +65,13 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length))
             if not isinstance(data, dict):
                 raise ValueError("请求必须是对象")
-            if self.path == "/api/archives":
+            if self.path == "/api/windows/status":
+                result = self.server.exporter.status()
+            elif self.path == "/api/windows/sessions":
+                result = self.server.exporter.list_sessions(data.get("keyword", ""))
+            elif self.path == "/api/windows/export":
+                result = self.server.exporter.export(data.get("id"))
+            elif self.path == "/api/archives":
                 result = self.server.store.list()
             elif self.path == "/api/archive":
                 record = self.server.store.load(data.get("id"))
@@ -136,6 +143,7 @@ def make_server(port=8765, data_dir=None):
     server.token = secrets.token_urlsafe(32)
     server.daemon_threads = True
     server.store = ArchiveStore(data_dir)
+    server.exporter = WindowsExporter(server.store)
     return server
 
 

@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -21,7 +22,8 @@ class StorageTests(unittest.TestCase):
         again = reopened.save(self.messages, "重复导入")
         self.assertEqual(saved, again)
         self.assertEqual(len(reopened.list()["archives"]), 1)
-        self.assertEqual(Path(saved["path"]).stat().st_mode & 0o777, 0o600)
+        if os.name != "nt":
+            self.assertEqual(Path(saved["path"]).stat().st_mode & 0o777, 0o600)
 
     def test_distinct_imports_preserve_older_archive(self):
         first = self.store.save(self.messages, "完整")
