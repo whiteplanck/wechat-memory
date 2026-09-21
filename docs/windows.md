@@ -4,6 +4,18 @@
 
 ## 首次使用
 
+### EXE 安装版（无需自行安装 Python / Node）
+
+下载成功的 **Windows EXE installer** 构建中的 `WeChatMemory-Installer-x64` 附件，解压后运行 `WeChatMemory-Setup-0.2.0-x64.exe`。仅支持 Windows 10/11 x64；安装到当前用户的应用目录，无需管理员权限，不修改系统 PATH。
+
+安装后打开桌面 **WeChat Memory**。首次提取时，在 Windows 微信登录自己的账号，再从开始菜单打开 **Initialize WeChat**，根据提示初始化（只有访问微信进程确需权限时才以管理员身份运行该快捷方式）。应用使用系统浏览器显示界面，使用期间保留启动控制台，关闭窗口即可停止本地服务。
+
+安装包内置运行环境及固定版本提取组件，安装本身不联网；云端 AI 请求仍需手动确认。包尚未代码签名，可能提示未知发布者，请核对私有仓库来源和同包 SHA256，不要关闭安全软件。卸载保留 Documents/WeChatMemory 内的聊天，以及提取工具在用户目录中的配置；不会自动删除敏感数据。
+
+CI 使用虚构记录验证安装、独立运行环境、导入存档及卸载保留数据，不等于真实微信账号提取已经验证。
+
+### 源码启动版（需自行安装运行环境）
+
 1. 安装 [Python](https://www.python.org/downloads/windows/)（包含 `py` 启动器，选 64 位）和 [Node.js](https://nodejs.org/en/download)（22.13 或更新的受支持版本），重开终端使 PATH 生效。
 2. 从 GitHub Actions 的 **Windows launcher kit** 成功运行中下载 `WeChatMemory-Windows` 附件，解压下载的附件及其中的 ZIP；也可下载整个仓库源码。不要直接在压缩包内运行。
 3. 双击 `setup-windows.cmd`。安装需要联网：创建项目 `.venv`，安装应用和提取依赖，将固定版本 weflow-cli 安装到 `%LOCALAPPDATA%\WeChatMemory\tools\weflow`，不修改全局 npm 包。

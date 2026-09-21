@@ -21,6 +21,9 @@ MAX_EXPORT_BYTES = 256 * 1024 * 1024
 
 
 def tools_directory():
+    bundled = Path(__file__).resolve().parents[1] / "tools" / "weflow"
+    if (bundled / "node_modules" / "weflow-cli" / "cli.cjs").is_file():
+        return bundled
     return Path(os.environ.get("LOCALAPPDATA", str(Path.home() / "AppData" / "Local"))) / "WeChatMemory" / "tools" / "weflow"
 
 
@@ -46,13 +49,17 @@ class WindowsExporter:
         env = os.environ.copy()
         # The upstream tool searches PATH for a Python with sqlcipher3 installed.
         env["PATH"] = str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+        bundled_node = Path(__file__).resolve().parents[1] / "runtime" / "node"
+        if (bundled_node / "node.exe").is_file():
+            env["PATH"] = str(bundled_node) + os.pathsep + env["PATH"]
         env["PYTHONIOENCODING"] = "utf-8"
         env["NO_COLOR"] = "1"
         return env
 
     def runtime(self):
         self.require_windows()
-        node = shutil.which("node")
+        bundled_node = Path(__file__).resolve().parents[1] / "runtime" / "node" / "node.exe"
+        node = str(bundled_node) if bundled_node.is_file() else shutil.which("node")
         if not node:
             raise ValueError("未找到 Node.js；请安装 Node.js 22.13+ 后重新运行安装脚本。")
         version = self._run([node, "--version"], 15).strip().lstrip("v")
