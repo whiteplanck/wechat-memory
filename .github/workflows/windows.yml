@@ -16,7 +16,7 @@ jobs:
         run: python -m wechat_memory.windows_exporter setup
       - name: Verify component starts and dependencies load (no WeChat login)
         run: |
-          python -c "from wechat_memory.windows_exporter import WindowsExporter; from wechat_memory.storage import ArchiveStore; s=WindowsExporter(ArchiveStore()).status(); print(s); assert s['installed']; assert not s.get('missing_dependencies', ['check failed'])"
+          python -c "import json; from wechat_memory.windows_exporter import WindowsExporter; from wechat_memory.storage import ArchiveStore; s=WindowsExporter(ArchiveStore()).status(); print(json.dumps(s)); assert s['installed']; assert not s.get('missing_dependencies', ['check failed'])"
       - run: python -m unittest discover -s tests -v
       - run: python scripts/build_windows_zip.py
       - uses: actions/upload-artifact@v4
