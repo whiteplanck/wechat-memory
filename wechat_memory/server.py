@@ -16,6 +16,7 @@ from .importers import import_records
 from .bundles import create_bundle, analysis_material
 from .windows_exporter import WindowsExporter
 from .console import configure_console
+from .credentials import CredentialStore
 
 STATIC = Path(__file__).parent / "web"
 MAX_BODY = 20 * 1024 * 1024
@@ -66,7 +67,13 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(length))
             if not isinstance(data, dict):
                 raise ValueError("请求必须是对象")
-            if self.path == "/api/windows/status":
+            if self.path == "/api/credentials/status":
+                result = self.server.credentials.status()
+            elif self.path == "/api/credentials/save":
+                result = self.server.credentials.save(data.get("api_key"))
+            elif self.path == "/api/credentials/delete":
+                result = self.server.credentials.delete()
+            elif self.path == "/api/windows/status":
                 result = self.server.exporter.status()
             elif self.path == "/api/windows/sessions":
                 result = self.server.exporter.list_sessions(data.get("keyword", ""))
@@ -122,7 +129,10 @@ class Handler(BaseHTTPRequestHandler):
                         raise ValueError("请填写模型名")
                     provider = data.get("provider", "ollama")
                     if provider == "deepseek":
-                        result = {"content": analyze_deepseek(messages, data.get("api_key"), model.strip(),
+                        if data.get("consent") is not True:
+                            raise ValueError("请确认本次将所选聊天发送给 DeepSeek")
+                        key = self.server.credentials.load() if data.get("use_saved_key") is True else data.get("api_key")
+                        result = {"content": analyze_deepseek(messages, key, model.strip(),
                                   consent=data.get("consent"), mode=data.get("mode", "overview"))}
                     elif provider == "ollama":
                         result = {"content": analyze(messages, model.strip())}
@@ -151,6 +161,7 @@ def make_server(port=8765, data_dir=None):
     server.daemon_threads = True
     server.store = ArchiveStore(data_dir)
     server.exporter = WindowsExporter(server.store)
+    server.credentials = CredentialStore()
     return server
 
 

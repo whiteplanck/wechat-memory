@@ -6,7 +6,9 @@
 
 ### EXE 安装版（无需自行安装 Python / Node）
 
-下载成功的 **Windows EXE installer** 构建中的 `WeChatMemory-Installer-x64` 附件，解压后运行 `WeChatMemory-Setup-0.2.0-x64.exe`。仅支持 Windows 10/11 x64；安装到当前用户的应用目录，无需管理员权限，不修改系统 PATH。
+下载成功的 **Windows EXE installer** 构建中的 `WeChatMemory-Installer-x64` 附件，解压后运行 `WeChatMemory-Setup-0.2.1-x64.exe`。仅支持 Windows 10/11 x64；安装到当前用户的应用目录，无需管理员权限，不修改系统 PATH。升级前关闭旧版控制台，在同一目录安装即可；聊天及已保存凭据保留。
+
+DeepSeek Key 可在「AI 分析」点击「加密保存 Key」，以后输入框留空即可使用，重启应用不需要重填。卸载也保留该凭据；若不再使用，请先在界面删除。密文受当前 Windows 账户保护，不是明文配置文件。
 
 安装后打开桌面 **WeChat Memory**。首次提取时，在 Windows 微信登录自己的账号，再从开始菜单打开 **Initialize WeChat**，根据提示初始化（只有访问微信进程确需权限时才以管理员身份运行该快捷方式）。应用使用系统浏览器显示界面，使用期间保留启动控制台，关闭窗口即可停止本地服务。
 

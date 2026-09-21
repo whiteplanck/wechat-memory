@@ -106,6 +106,23 @@ class LocalAppTests(unittest.TestCase):
             save.assert_not_called()
         self.assertEqual(self.request("/api/analyze", {**data, "provider": "unknown"})[0], 400)
 
+    def test_saved_key_never_returned_and_still_requires_consent(self):
+        with patch.object(self.server, "credentials") as credentials, patch("wechat_memory.server.analyze_deepseek", return_value="report") as model:
+            credentials.status.return_value = {"saved": True, "supported": True}
+            credentials.save.return_value = credentials.status.return_value
+            credentials.delete.return_value = {"saved": False, "supported": True}
+            credentials.load.return_value = "test-only-key"
+            for route, data in (("status", {}), ("save", {"api_key": "test-only-key"}), ("delete", {})):
+                code, body, _ = self.request("/api/credentials/" + route, data)
+                self.assertEqual(code, 200)
+                self.assertNotIn(b"test-only-key", body)
+            data = {"messages": self.messages, "provider": "deepseek", "model": "deepseek-flash", "use_saved_key": True}
+            self.assertEqual(self.request("/api/analyze", data)[0], 400)
+            credentials.load.assert_not_called()
+            self.assertEqual(self.request("/api/analyze", {**data, "consent": True})[0], 200)
+            self.assertEqual(model.call_args.args[1], "test-only-key")
+            self.assertEqual(self.request("/api/credentials/delete", {}, {"X-Session-Token": ""})[0], 403)
+
     def test_external_import_retains_original_and_exports_bundle(self):
         raw = {"contact_display": "参考格式", "messages": [{"local_id": 99, "sender": "me", "timestamp": 1726142400,
                 "type": "text", "content": "你好", "extra_metadata": "原样保留"}]}

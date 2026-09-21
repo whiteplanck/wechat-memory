@@ -65,7 +65,8 @@
     <div id="deepseek-settings" hidden>
       <p>官方接口：<code>https://api.deepseek.com/chat/completions</code>（固定地址，不接受第三方中转）</p>
       <label for="api-key">DeepSeek API Key</label> <input id="api-key" type="password" autocomplete="off" spellcheck="false" placeholder="在本机粘贴你的 API Key"><button id="clear-key" class="quiet">清空 Key</button>
-      <p class="muted">Key 不写入配置、浏览器存储或聊天档案；提交后清空输入框。不要把 Key 发到聊天或 GitHub。</p>
+      <div class="photo-input"><button id="remember-key" class="quiet" disabled>加密保存 Key</button><button id="forget-key" class="quiet" disabled>删除已保存 Key</button><span id="key-status" class="muted" role="status">正在检查已保存凭据…</span></div>
+      <p class="muted">Windows 可加密保存到当前账户，重启后继续使用；不回显密钥，不放进聊天备份。留空使用已保存 Key，填写新 Key 则仅本次使用，点击「加密保存」才会替换。删除本机凭据不会撤销服务商的 Key。</p>
       <label for="analysis-mode">分析模式</label> <select id="analysis-mode"><option value="overview">摘要 / 话题树 / 时间线</option><option value="communication">沟通模式 / 支持与反证</option><option value="actions">待办 / 约定 / 待确认事项</option></select>
       <p><label><input id="cloud-consent" type="checkbox">我同意本次将当前筛选的聊天文本、会话名、发言者、时间和消息 ID 发送给 DeepSeek，可能产生费用。</label></p>
       <p class="muted">不上传附件文件或独立的附件路径字段；正文中的姓名、链接等隐私仍会发送，并非自动脱敏。模型没有文件、命令或联网工具权限。</p>

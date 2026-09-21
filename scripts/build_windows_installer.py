@@ -55,7 +55,8 @@ def main():
         "3. 网页内选择 Windows 提取，检测环境、选择会话，再提取保存。\n"
         "4. 使用期间请保留控制台窗口；关闭该窗口即停止本地服务。\n\n"
         "聊天默认保存到用户目录 Documents\\WeChatMemory。卸载不删除聊天或提取工具的用户配置。\n"
-        "AI 分析默认本地，可手动选 DeepSeek 并粘贴 Key；每次云端发送需确认。\n"
+        "AI 分析可手动选 DeepSeek 并加密保存 Key，重启后继续使用；每次云端发送需确认。\n"
+        "卸载保留加密凭据；如需清除，请先在 AI 分析中点击删除已保存 Key。\n"
         "此包未购买代码签名证书，Windows 可能提示未知发布者。请核对来源和 SHA256，不要关闭安全软件。\n"
         "真实微信账号提取仍需本机验证，不保证手机全部历史及媒体附件。\n", encoding="utf-8-sig")
     versions = {"python": PYTHON_VERSION, "python_archive_sha256": PYTHON_SHA256, "weflow-cli": WEFLOW_VERSION,

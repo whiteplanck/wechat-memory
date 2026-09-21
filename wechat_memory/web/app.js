@@ -3,6 +3,7 @@ const $ = id => document.getElementById(id);
 let messages = [], selected = {conversation:null, day:null}, limit = 100, photoData = null, analysis = "", revision = 0, photoRevision = 0, importRevision = 0;
 let activeArchive = null;
 let windowsReady=false, windowsBusy=false;
+let savedKey=false;
 const token = document.querySelector('meta[name="session-token"]').content;
 function status(text, error=false) { $("status").textContent=text; $("status").classList.toggle("error",error); }
 async function api(route,data) {
@@ -90,14 +91,28 @@ $("provider").onchange=()=>{
 };
 $("model").oninput=invalidate;$("analysis-mode").onchange=invalidate;
 $("clear-key").onclick=()=>{$("api-key").value="";$("cloud-consent").checked=false;status("已清空页面中的 API Key。");};
+function keyState(r){savedKey=r.saved;$("remember-key").disabled=!r.supported;$("forget-key").disabled=!r.saved;$("key-status").textContent=r.saved?"已加密保存 · 输入框留空即可使用":r.supported?"未保存 · 可记住 Key，重启后继续使用":"当前平台仅支持临时 Key；Windows 安装版支持加密保存";}
+async function refreshKey(){keyState(await api("credentials/status",{}));}
+$("remember-key").onclick=async()=>{
+  const key=$("api-key").value.trim();if(!key){status("请先填入要保存的 Key。",true);return;}
+  $("remember-key").disabled=true;$("forget-key").disabled=true;
+  try{const r=await api("credentials/save",{api_key:key});$("api-key").value="";keyState(r);status("Key 已按 Windows 当前账户加密保存，下次无需重新输入。");}
+  catch(e){status(e.message,true);await refreshKey().catch(()=>{});}
+};
+$("forget-key").onclick=async()=>{
+  if(!window.confirm("删除本机保存的 DeepSeek Key？聊天档案不会删除。"))return;
+  $("remember-key").disabled=true;$("forget-key").disabled=true;
+  try{keyState(await api("credentials/delete",{}));$("api-key").value="";$("cloud-consent").checked=false;status("已删除本机保存的 Key；服务商处的 Key 仍有效。");}
+  catch(e){status(e.message,true);await refreshKey().catch(()=>{});}
+};
 window.addEventListener("pagehide",()=>{$("api-key").value="";$("cloud-consent").checked=false;});
 $("analyze").onclick=async()=>{
   const b=$("analyze"),version=revision,cloud=$("provider").value==="deepseek",rows=filtered();
   if(cloud&&!$("cloud-consent").checked){status("请先勾选本次云端发送确认。",true);return;}
-  if(cloud&&!$("api-key").value.trim()){status("请先粘贴 DeepSeek API Key。",true);return;}
+  if(cloud&&!$("api-key").value.trim()&&!savedKey){status("请先粘贴或保存 DeepSeek API Key。",true);return;}
   if(cloud&&!window.confirm(`将发送当前筛选的 ${rows.length} 条聊天至 api.deepseek.com，可能产生费用。确认继续？`))return;
   const payload={messages:rows,model:$("model").value,provider:$("provider").value};
-  if(cloud){Object.assign(payload,{api_key:$("api-key").value.trim(),consent:true,mode:$("analysis-mode").value});$("api-key").value="";$("cloud-consent").checked=false;}
+  if(cloud){Object.assign(payload,{api_key:$("api-key").value.trim(),use_saved_key:!$("api-key").value.trim()&&savedKey,consent:true,mode:$("analysis-mode").value});$("api-key").value="";$("cloud-consent").checked=false;}
   b.dataset.busy="true";b.disabled=true;analysis="";$("analysis").textContent="正在分析…";$("save-analysis").disabled=true;
   status(cloud?"正在请求 DeepSeek，仅发送本次选定内容…":"本地模型正在分析，可能需要几分钟…");
   try{
@@ -158,6 +173,7 @@ $("win-export").onclick=async()=>{
 };
 setMonth();render();
 const startupVersion=importRevision;
+refreshKey().catch(()=>{$("key-status").textContent="无法检查保存的 Key，请重启应用或使用临时 Key。";});
 refreshArchives().then(result=>{
   if(startupVersion===importRevision&&result.archives.length&&!result.errors.length)return openArchive(result.archives[0].id);
 }).catch(e=>status(`本地档案读取失败：${e.message}`,true));

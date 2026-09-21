@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    setup = root / "dist" / "WeChatMemory-Setup-0.2.0-x64.exe"
+    setup = root / "dist" / "WeChatMemory-Setup-0.2.1-x64.exe"
     with tempfile.TemporaryDirectory(prefix="wechat-installer-test-") as temp:
         base = Path(temp)
         install = base / "Installed App"
@@ -27,6 +27,9 @@ def main():
         check = subprocess.check_output([str(python), "-m", "wechat_memory.windows_exporter", "check"], cwd=base, env=env, text=True, encoding="utf-8", timeout=150)
         status = json.loads(check)
         assert status["installed"] and not status.get("missing_dependencies", ["missing"]), status
+        secret_dir = base / "Test Credentials"
+        subprocess.run([str(python), "-c", "import sys; from wechat_memory.credentials import CredentialStore; s=CredentialStore(sys.argv[1]); s.save('installer-fake-key'); assert b'installer-fake-key' not in s.path.read_bytes()", str(secret_dir)], cwd=base, env=env, check=True)
+        subprocess.run([str(python), "-c", "import sys; from wechat_memory.credentials import CredentialStore; s=CredentialStore(sys.argv[1]); assert s.load() == 'installer-fake-key'; s.delete()", str(secret_dir)], cwd=base, env=env, check=True)
         process = subprocess.Popen([str(python), "-u", "-m", "wechat_memory.server", "--no-browser", "--port", "0", "--data-dir", str(data)],
                                    cwd=base, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8")
         try:

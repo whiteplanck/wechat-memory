@@ -30,13 +30,13 @@ jobs:
       - name: Hash installer
         shell: pwsh
         run: |
-          $artifact = Get-Item dist/WeChatMemory-Setup-0.2.0-x64.exe
+          $artifact = Get-Item dist/WeChatMemory-Setup-0.2.1-x64.exe
           $checksum = (Get-FileHash $artifact -Algorithm SHA256).Hash.ToLower()
-          "$checksum  $($artifact.Name)" | Set-Content -Encoding ascii dist/WeChatMemory-Setup-0.2.0-x64.exe.sha256
+          "$checksum  $($artifact.Name)" | Set-Content -Encoding ascii dist/WeChatMemory-Setup-0.2.1-x64.exe.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: WeChatMemory-Installer-x64
           path: |
-            dist/WeChatMemory-Setup-0.2.0-x64.exe
-            dist/WeChatMemory-Setup-0.2.0-x64.exe.sha256
+            dist/WeChatMemory-Setup-0.2.1-x64.exe
+            dist/WeChatMemory-Setup-0.2.1-x64.exe.sha256
           if-no-files-found: error
