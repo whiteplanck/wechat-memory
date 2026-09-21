@@ -15,6 +15,7 @@ from .storage import ArchiveStore
 from .importers import import_records
 from .bundles import create_bundle, analysis_material
 from .windows_exporter import WindowsExporter
+from .console import configure_console
 
 STATIC = Path(__file__).parent / "web"
 MAX_BODY = 20 * 1024 * 1024
@@ -148,6 +149,7 @@ def make_server(port=8765, data_dir=None):
 
 
 def main(argv=None):
+    configure_console()
     parser = argparse.ArgumentParser(description="启动微信记忆本地应用")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-browser", action="store_true")

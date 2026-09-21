@@ -13,6 +13,7 @@ import uuid
 
 from .importers import import_records
 from .storage import ArchiveStore
+from .console import configure_console
 
 WEFLOW_VERSION = "1.7.0"
 MIN_NODE = (22, 13, 0)
@@ -207,6 +208,7 @@ class WindowsExporter:
 
 
 def main():
+    configure_console()
     parser = argparse.ArgumentParser(description="Windows 微信提取组件管理")
     parser.add_argument("action", choices=("setup", "init", "check"))
     parser.add_argument("--path", help="初始化时指定微信数据目录")

@@ -26,9 +26,9 @@ class BundleTests(unittest.TestCase):
         result = create_bundle(self.store, archive["id"], str(self.media))
         self.assertEqual((result["copied"], result["skipped"]), (1, 3))
         bundle = Path(result["path"])
-        rows = json.loads((bundle / "messages.json").read_text())["messages"]
+        rows = json.loads((bundle / "messages.json").read_text(encoding="utf-8"))["messages"]
         self.assertEqual((bundle / rows[0]["media"][0]).read_bytes(), b"fictional-image")
-        html = next((bundle / "contacts").glob("*/chat.html")).read_text()
+        html = next((bundle / "contacts").glob("*/chat.html")).read_text(encoding="utf-8")
         self.assertNotIn("<script>", html)
         self.assertIn("&lt;script&gt;", html)
         self.assertTrue((bundle / "analysis_prompt.txt").exists())

@@ -14,7 +14,7 @@ DEMO = Path(__file__).resolve().parents[1] / "examples/demo.json"
 
 class CoreTests(unittest.TestCase):
     def setUp(self):
-        self.raw = json.loads(DEMO.read_text())["messages"]
+        self.raw = json.loads(DEMO.read_text(encoding="utf-8"))["messages"]
         self.messages = normalize(self.raw)
 
     def test_stats_tree(self):
@@ -46,7 +46,7 @@ class CoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = str(Path(tmp) / "archive.json")
             self.assertEqual(main(["export", str(DEMO), "--format", "json", "--output", out]), 0)
-            self.assertEqual(normalize(json.loads(Path(out).read_text())), self.messages)
+            self.assertEqual(normalize(json.loads(Path(out).read_text(encoding="utf-8"))), self.messages)
             self.assertEqual(main(["export", str(DEMO), "--output", out]), 1)
 
     def test_remote_requires_consent(self):

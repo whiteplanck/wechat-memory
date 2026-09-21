@@ -16,7 +16,7 @@ class LocalAppTests(unittest.TestCase):
         cls.server = make_server(0, cls.storage.name)
         cls.worker = Thread(target=cls.server.serve_forever, daemon=True)
         cls.worker.start()
-        cls.messages = json.loads((Path(__file__).resolve().parents[1] / "examples/demo.json").read_text())["messages"]
+        cls.messages = json.loads((Path(__file__).resolve().parents[1] / "examples/demo.json").read_text(encoding="utf-8"))["messages"]
 
     @classmethod
     def tearDownClass(cls):

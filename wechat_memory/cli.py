@@ -7,6 +7,7 @@ from urllib.error import URLError
 from .core import normalize, tree, statistics, markdown, calendar, chat_photo_events
 from .photos import scan_photos
 from .providers import analyze
+from .console import configure_console
 
 
 def write(path, content):
@@ -18,6 +19,7 @@ def write(path, content):
 
 
 def main(argv=None):
+    configure_console()
     parser = argparse.ArgumentParser(description="微信聊天档案核心：导出、目录、统计、AI 与照片日历")
     sub = parser.add_subparsers(dest="command", required=True)
     for command in ("export", "tree", "stats", "calendar", "analyze"):

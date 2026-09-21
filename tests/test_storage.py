@@ -13,7 +13,7 @@ class StorageTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.store = ArchiveStore(self.tmp.name)
-        self.messages = json.loads((Path(__file__).resolve().parents[1] / "examples/demo.json").read_text())["messages"]
+        self.messages = json.loads((Path(__file__).resolve().parents[1] / "examples/demo.json").read_text(encoding="utf-8"))["messages"]
 
     def test_reload_after_restart_and_deduplication(self):
         saved = self.store.save(self.messages, "旅行")
@@ -46,4 +46,4 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(len(self.store.list()["errors"]), 1)
         with self.assertRaises(ValueError):
             self.store.save(self.messages, "旅行")
-        self.assertEqual(path.read_text(), "broken")
+        self.assertEqual(path.read_text(encoding="utf-8"), "broken")
