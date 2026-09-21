@@ -11,3 +11,5 @@ output/
 private/
 *.db
 *.sqlite*
+build/
+dist/

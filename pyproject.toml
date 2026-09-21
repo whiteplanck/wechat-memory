@@ -14,6 +14,10 @@ photos = ["Pillow>=11,<13"]
 
 [project.scripts]
 wechat-memory = "wechat_memory.cli:main"
+wechat-memory-app = "wechat_memory.server:main"
 
 [tool.setuptools.packages.find]
 include = ["wechat_memory*"]
+
+[tool.setuptools.package-data]
+wechat_memory = ["web/*.html", "web/*.css", "web/*.js"]
