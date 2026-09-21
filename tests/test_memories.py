@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch, MagicMock
+from types import SimpleNamespace
+import wave
 
 from wechat_memory.storage import ArchiveStore
 from wechat_memory.memories import MemoryStore
@@ -50,6 +53,24 @@ class MemoryTests(unittest.TestCase):
         for file in manifest['files']:
             self.assertEqual(hashlib.sha256((bundle/file['path']).read_bytes()).hexdigest(),file['sha256'])
         self.assertNotIn('api_key',(bundle/'annotations.json').read_text(encoding='utf-8'))
+
+    def test_local_speech_candidate_never_overwrites_reviewed_text(self):
+        media=self.root/'media';media.mkdir();model=self.root/'model';model.mkdir()
+        for name in ('model.bin','config.json','tokenizer.json'):(model/name).write_bytes(b'{}')
+        with wave.open(str(media/'voice.wav'),'wb') as wav:
+            wav.setnchannels(1);wav.setsampwidth(2);wav.setframerate(16000);wav.writeframes(b'\0\0'*1600)
+        self.store.annotate(self.id,'C','1',[],'','已核对文本',0)
+        fake_numpy=MagicMock();fake_model=MagicMock()
+        fake_model.return_value.transcribe.return_value=([SimpleNamespace(start=0,end=.1,text='候选文本')],SimpleNamespace(language='zh'))
+        with patch.dict('sys.modules',{'numpy':fake_numpy,'faster_whisper':SimpleNamespace(WhisperModel=fake_model)}):
+            data=self.store.transcribe(self.id,'C','1',str(media),'voice.wav',str(model))
+        self.assertTrue(fake_model.call_args.kwargs['local_files_only'])
+        self.assertEqual(fake_model.call_args.kwargs['device'],'cpu')
+        item=data['items'][0]
+        self.assertEqual(item['transcript'],'已核对文本')
+        self.assertEqual(item['asr_candidate']['text'],'候选文本')
+        self.assertEqual(item['asr_candidate']['source_sha256'],hashlib.sha256((media/'voice.wav').read_bytes()).hexdigest())
+        self.assertEqual(item['asr_candidate']['segments'][0]['end_seconds'],.1)
 
 
 if __name__=='__main__':unittest.main()

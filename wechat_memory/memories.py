@@ -137,9 +137,9 @@ class MemoryStore:
         return {**data, "memories": [{"date": day, "items": items, "date_source": "消息发送日期（不是照片拍摄日期）"} for day, items in sorted(memories.items())],
                 "people": [{"name": name, "items": items, "source": "用户手动标签，非人脸识别"} for name, items in sorted(people.items())]}
 
-    def enriched(self, archive_id):
+    def enriched(self, archive_id, annotations=None):
         """A clearly labelled derived view; immutable original is never rewritten."""
-        data = self.load(archive_id)
+        data = annotations if annotations is not None else self.load(archive_id)
         by_id = {(x["conversation"], x["message_id"]): x for x in data["items"]}
         rows = []
         for m in self.archives.load(archive_id)["messages"]:

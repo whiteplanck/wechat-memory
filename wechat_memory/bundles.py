@@ -128,7 +128,8 @@ def create_bundle(store, archive_id, media_root=None):
         json_file(stage / "annotations.json", annotations)
         json_file(stage / "messages-with-transcripts.json", {"schema": "wechat-memory.derived.v1", "archive_id": archive_id,
             "note": "用户核对的转写附于正文；不是原始文本。附件请参见 attachments-manifest.json。",
-            "messages": [{**m, "media": p["media"]} for m, p in zip(MemoryStore(store).enriched(archive_id), portable)]})
+            "annotation_revision": annotations["revision"],
+            "messages": [{**m, "media": p["media"]} for m, p in zip(MemoryStore(store).enriched(archive_id, annotations), portable)]})
         reports = RelationshipStore(store.directory)
         source_messages = {(m["conversation"], m["id"]): m for m in record["messages"]}
         related = []
