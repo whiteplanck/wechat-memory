@@ -39,7 +39,7 @@ class ArchiveStore:
     def summary(record):
         return {key: record[key] for key in ("id", "label", "created_at", "path")} | {"count": len(record["messages"])}
 
-    def save(self, messages, label):
+    def save(self, messages, label, original=None, import_info=None):
         messages = normalize(messages)
         if not isinstance(label, str) or not label.strip():
             label = "聊天档案"
@@ -50,6 +50,9 @@ class ArchiveStore:
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         record = {"version": 1, "id": archive_id, "label": label[:200],
                   "created_at": datetime.now(timezone.utc).isoformat(), "messages": messages}
+        if original is not None:
+            record["original_import"] = original
+            record["import_info"] = import_info or {}
         fd, temporary = tempfile.mkstemp(prefix=".saving-", dir=self.directory)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as output:

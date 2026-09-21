@@ -93,6 +93,21 @@ class LocalAppTests(unittest.TestCase):
             self.assertNotIn("archive", json.loads(body))
             save.assert_not_called()
 
+    def test_external_import_retains_original_and_exports_bundle(self):
+        raw = {"contact_display": "参考格式", "messages": [{"local_id": 99, "sender": "me", "timestamp": 1726142400,
+                "type": "text", "content": "你好", "extra_metadata": "原样保留"}]}
+        code, body, _ = self.request("/api/import", {"raw": raw, "label": "外部记录"})
+        self.assertEqual(code, 200)
+        result = json.loads(body)
+        archive = self.server.store.load(result["archive"]["id"])
+        self.assertEqual(archive["original_import"], raw)
+        code, body, _ = self.request("/api/bundle", {"id": archive["id"]})
+        self.assertEqual(code, 200)
+        self.assertTrue(Path(json.loads(body)["index"]).is_file())
+        code, body, _ = self.request("/api/material", {"messages": result["messages"]})
+        self.assertEqual(code, 200)
+        self.assertEqual(json.loads(body)["coverage"]["total_messages"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

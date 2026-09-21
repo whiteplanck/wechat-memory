@@ -12,6 +12,8 @@ from .core import normalize, tree, statistics, markdown, calendar, chat_photo_ev
 from .photos import scan_photos
 from .providers import analyze
 from .storage import ArchiveStore
+from .importers import import_records
+from .bundles import create_bundle, analysis_material
 
 STATIC = Path(__file__).parent / "web"
 MAX_BODY = 20 * 1024 * 1024
@@ -66,7 +68,16 @@ class Handler(BaseHTTPRequestHandler):
                 result = self.server.store.list()
             elif self.path == "/api/archive":
                 record = self.server.store.load(data.get("id"))
-                result = {"messages": record["messages"], "archive": self.server.store.summary(record)}
+                result = {"messages": record["messages"], "archive": self.server.store.summary(record), **record.get("import_info", {})}
+            elif self.path == "/api/bundle":
+                media_root = data.get("media_root")
+                if media_root and (not isinstance(media_root, str) or not Path(media_root).expanduser().is_absolute()):
+                    raise ValueError("附件根目录必须是绝对路径")
+                result = create_bundle(self.server.store, data.get("id"), media_root)
+            elif self.path == "/api/material":
+                messages = normalize(data.get("messages"))
+                stats, coverage, prompt = analysis_material(messages)
+                result = {"stats": stats, "coverage": coverage, "content": prompt}
             elif self.path == "/api/photos":
                 folder = data.get("folder")
                 if not isinstance(folder, str) or not folder.strip():
@@ -76,12 +87,16 @@ class Handler(BaseHTTPRequestHandler):
                 events, skipped = scan_photos(folder)
                 result = {"events": events, "skipped": skipped, "ics": calendar(events)}
             elif self.path in ("/api/import", "/api/export", "/api/analyze"):
-                messages = normalize(data.get("messages"))
                 if self.path == "/api/import":
-                    result = {"messages": messages, "tree": tree(messages), "stats": statistics(messages), "events": chat_photo_events(messages)}
+                    original = data.get("raw", data.get("messages"))
+                    imported = import_records(original, data.get("format", "auto"), data.get("contact", ""), data.get("timezone", "+08:00"))
+                    messages = imported["messages"]
+                    result = {**imported, "tree": tree(messages), "stats": statistics(messages), "events": chat_photo_events(messages)}
                     if data.get("save") is not False:
-                        result["archive"] = self.server.store.save(messages, data.get("label", "聊天档案"))
+                        result["archive"] = self.server.store.save(messages, data.get("label", "聊天档案"), original,
+                                                                 {"source": imported["source"], "warnings": imported["warnings"]})
                 elif self.path == "/api/export":
+                    messages = normalize(data.get("messages"))
                     fmt = data.get("format")
                     if fmt == "markdown":
                         content = markdown(messages)
@@ -93,6 +108,7 @@ class Handler(BaseHTTPRequestHandler):
                         raise ValueError("不支持的导出格式")
                     result = {"content": content}
                 else:
+                    messages = normalize(data.get("messages"))
                     model = data.get("model")
                     if not isinstance(model, str) or not model.strip():
                         raise ValueError("请填写已安装的 Ollama 模型名")

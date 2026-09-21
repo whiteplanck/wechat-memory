@@ -1,6 +1,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 let messages = [], selected = {conversation:null, day:null}, limit = 100, photoData = null, analysis = "", revision = 0, photoRevision = 0, importRevision = 0;
+let activeArchive = null;
 const token = document.querySelector('meta[name="session-token"]').content;
 function status(text, error=false) { $("status").textContent=text; $("status").classList.toggle("error",error); }
 async function api(route,data) {
@@ -18,6 +19,8 @@ function renderTree() {
 }
 function select(conversation,day){selected={conversation,day};limit=100;invalidate();renderTree();render();}
 function render() {
+  $("backup").disabled=!activeArchive||$("backup").dataset.busy==="true";
+  $("material").disabled=!filtered().length;
   const rows=filtered();$("count").textContent=rows.length;$("conversations").textContent=new Set(rows.map(m=>m.conversation)).size;$("people").textContent=new Set(rows.map(m=>m.sender)).size;$("photos").textContent=rows.filter(m=>m.type==="image").length;
   $("title").textContent=messages.length?"每段对话，都有迹可循。":"从一次对话，找回一段记忆。";$("scope").textContent=[selected.conversation||"全部记录",selected.day].filter(Boolean).join(" / ");$("messages").replaceChildren();
   if(!rows.length){const box=node("div",undefined,"empty");box.append(node("strong",messages.length?"没有匹配的消息":"你的第一份聊天档案"),node("p",messages.length?"尝试调整搜索或选择其他日期。":"导入标准 JSON，或从左侧虚构示例开始。"));$("messages").append(box);}
@@ -33,6 +36,10 @@ function renderCalendar(){
   for(let day=1;day<=count;day++){const cell=node("div",undefined,"day");cell.append(node("span",day));const key=`${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;for(const e of byDate.get(key)||[])cell.append(node("p",e.title,"event"));grid.append(cell);}$("ics").disabled=!events().length;
 }
 function adoptArchive(result){
+  activeArchive=result.archive||null;
+  $("backup-result").textContent=activeArchive?`当前档案：${activeArchive.label}\n生成的备份会保存在档案目录下的 bundles 文件夹中。`:"请先导入或打开一个已保存档案。";
+  $("import-notice").hidden=!(result.warnings?.length);
+  $("import-warnings").textContent=(result.warnings||[]).join("\n");
   photoRevision++;messages=result.messages;selected={conversation:null,day:null};
   $("search").value="";photoData=null;$("skips").hidden=true;limit=100;
   invalidate();setMonth();renderTree();render();
@@ -56,18 +63,18 @@ async function openArchive(id){
 }
 async function importData(raw,label,save=true){
   const version=++importRevision;
-  const result=await api("import",{messages:Array.isArray(raw)?raw:raw?.messages,label,save});
+  const result=await api("import",{raw,label,save,format:save?$("import-format").value:"standard",contact:$("import-contact").value,timezone:$("import-timezone").value});
   if(version!==importRevision)return;
   // Show the successfully imported data even if refreshing the archive list fails.
   adoptArchive(result);
-  status(result.archive?`已保存到本地：${result.archive.path}（${messages.length} 条）`:`已载入 ${label}，示例不自动保存。`);
+  status(result.archive?`已从 ${result.source} 导入 ${messages.length} 条，保存到：${result.archive.path}`:`已载入 ${label}，示例不自动保存。`);
   try{await refreshArchives();if(version===importRevision)$("archives").value=result.archive?.id||"";}
   catch(e){status(result.archive?`档案已保存，但列表刷新失败：${e.message}`:e.message,true);}
 }
 $("import").onclick=()=>$("file").click();
-$("file").onchange=async()=>{const file=$("file").files[0];if(!file)return;try{if(file.size>19*1024*1024)throw new Error("文件过大，请拆分为小于 19 MB 的 JSON 文件");await importData(JSON.parse(await file.text()),file.name);}catch(e){status(e.message,true);}finally{$("file").value="";}};
+$("file").onchange=async()=>{const file=$("file").files[0];if(!file)return;try{if(file.size>19*1024*1024)throw new Error("文件过大，请拆分为小于 19 MB 的文件");await importData(await file.text(),file.name);}catch(e){status(e.message,true);}finally{$("file").value="";}};
 $("demo").onclick=()=>importData([{id:"demo-1",conversation:"周末旅行（虚构示例）",sender:"小林",timestamp:"2026-09-19T09:30:00+08:00",text:"周六去西湖散步，记得带相机。",type:"text"},{id:"demo-2",conversation:"周末旅行（虚构示例）",sender:"小周",timestamp:"2026-09-19T16:20:00+08:00",text:"今天拍的湖边照片。",type:"image",media:["photos/example.jpg"]},{id:"demo-3",conversation:"周末旅行（虚构示例）",sender:"小林",timestamp:"2026-09-20T10:00:00+08:00",text:"下周整理照片，做一本旅行日历。",type:"text"}],"虚构示例",false).catch(e=>status(e.message,true));
-$("reset").onclick=()=>{$("search").value="";select(null,null);};$("clear").onclick=()=>{importRevision++;photoRevision++;messages=[];photoData=null;$("archives").value="";$("folder").value="";$("skips").hidden=true;$("skip-list").textContent="";$("search").value="";select(null,null);status("已关闭当前档案。本地文件仍保留，可从左侧重新打开。");};
+$("reset").onclick=()=>{$("search").value="";select(null,null);};$("clear").onclick=()=>{importRevision++;photoRevision++;activeArchive=null;messages=[];photoData=null;$("archives").value="";$("folder").value="";$("skips").hidden=true;$("skip-list").textContent="";$("search").value="";$("import-notice").hidden=true;$("backup-result").textContent="请先导入或打开一个已保存档案。";select(null,null);status("已关闭当前档案。本地文件仍保留，可从左侧重新打开。");};
 $("archives").onchange=()=>{if($("archives").value)openArchive($("archives").value).catch(e=>status(e.message,true));};
 $("reload-archives").onclick=()=>refreshArchives().catch(e=>status(e.message,true));
 $("search").oninput=()=>{limit=100;invalidate();render();};$("more").onclick=()=>{limit+=100;render();};
@@ -78,6 +85,20 @@ $("scan").onclick=async()=>{const b=$("scan"),version=++photoRevision;b.disabled
 $("ics").onclick=async()=>{try{const content=photoData?photoData.ics:(await api("export",{messages:filtered(),format:"ics"})).content;download(content,`photos-${Date.now()}.ics`,"text/calendar");status("日历已下载，可手动导入日历应用。");}catch(e){status(e.message,true);}};
 $("analyze").onclick=async()=>{const b=$("analyze"),version=revision;b.dataset.busy="true";b.disabled=true;$("save-analysis").disabled=true;status("本地模型正在分析，可能需要几分钟…");try{const result=await api("analyze",{messages:filtered(),model:$("model").value});if(version!==revision){status("聊天或筛选已改变，旧分析已丢弃，请重新分析。");return;}analysis=result.content;$("analysis").textContent=analysis;$("save-analysis").disabled=false;status("分析完成，请核对原始消息。 ");}catch(e){status(e.message,true);}finally{b.dataset.busy="false";render();}};
 $("save-analysis").onclick=()=>download(analysis,`analysis-${Date.now()}.md`);
+$("material").onclick=async()=>{
+  try{const result=await api("material",{messages:filtered()});download(result.content,`analysis-material-${Date.now()}.txt`);
+    status(`已导出分析材料：统计 ${result.coverage.total_messages} 条，样本 ${result.coverage.sampled_messages} 条。`);
+  }catch(e){status(e.message,true);}
+};
+$("backup").onclick=async()=>{
+  if(!activeArchive)return;const archive=activeArchive,b=$("backup");b.dataset.busy="true";b.disabled=true;
+  status(`正在为「${archive.label}」生成本地备份并复制附件…`);
+  try{const result=await api("bundle",{id:archive.id,media_root:$("media-root").value.trim()});
+    const summary=`档案：${archive.label}\n备份目录：${result.path}\n离线浏览：打开目录内的 index.html\n${result.messages} 条消息，${result.conversations} 个会话\n已复制附件：${result.copied}；未复制：${result.skipped}\n未复制的附件详见 attachments-manifest.json。备份时请复制整个文件夹。`;
+    if(activeArchive?.id===archive.id)$("backup-result").textContent=summary;
+    status(`「${archive.label}」备份已保存：${result.path}（${result.skipped} 个附件未复制）`);
+  }catch(e){status(`备份失败：${e.message}`,true);}finally{b.dataset.busy="false";render();}
+};
 setMonth();render();
 const startupVersion=importRevision;
 refreshArchives().then(result=>{
