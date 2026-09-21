@@ -23,9 +23,9 @@ function render() {
   $("backup").disabled=!activeArchive||$("backup").dataset.busy==="true";
   $("material").disabled=!filtered().length;
   const rows=filtered();$("count").textContent=rows.length;$("conversations").textContent=new Set(rows.map(m=>m.conversation)).size;$("people").textContent=new Set(rows.map(m=>m.sender)).size;$("photos").textContent=rows.filter(m=>m.type==="image").length;
-  $("title").textContent=messages.length?"每段对话，都有迹可循。":"从一次对话，找回一段记忆。";$("scope").textContent=[selected.conversation||"全部记录",selected.day].filter(Boolean).join(" / ");$("messages").replaceChildren();
+  $("title").textContent=messages.length?(activeArchive?.label||"聊天记忆工作台"):"建立你的本地记忆库";$("scope").textContent=[selected.conversation||"全部记录",selected.day].filter(Boolean).join(" / ");$("messages").replaceChildren();
   if(!rows.length){const box=node("div",undefined,"empty");box.append(node("strong",messages.length?"没有匹配的消息":"你的第一份聊天档案"),node("p",messages.length?"尝试调整搜索或选择其他日期。":"导入标准 JSON，或从左侧虚构示例开始。"));$("messages").append(box);}
-  for(const m of rows.slice(0,limit)){const article=node("article",undefined,"message"),head=node("header");head.append(node("strong",m.sender),node("span",m.timestamp.replace("T"," ")));article.append(head,node("p",m.text||`[${m.type}]`),node("small",`${m.conversation} · 消息 ${m.id}`));if(m.media.length)article.append(node("small","附件引用："+m.media.join("，")));$("messages").append(article);}
+  for(const m of rows.slice(0,limit)){const article=node("article",undefined,"message"),head=node("header"),avatar=node("span",Array.from(m.sender)[0]||"?","message-avatar");avatar.setAttribute("aria-hidden","true");head.append(node("strong",m.sender),node("span",m.timestamp.replace("T"," ")));article.append(avatar,head,node("p",m.text||`[${m.type}]`),node("small",`${m.conversation} · 消息 ${m.id}`));if(m.media.length)article.append(node("small","附件引用："+m.media.join("，")));$("messages").append(article);}
   $("more").hidden=rows.length<=limit;document.querySelectorAll("[data-export]").forEach(b=>b.disabled=!rows.length);$("analyze").disabled=!rows.length||$("analyze").dataset.busy==="true";renderCalendar();
 }
 function events(){return photoData?photoData.events:filtered().filter(m=>m.type==="image").map(m=>({date:m.timestamp.slice(0,10),title:`${m.sender} · ${m.text||"照片"}`}));}
